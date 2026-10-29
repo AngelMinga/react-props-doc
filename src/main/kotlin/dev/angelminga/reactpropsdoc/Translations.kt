@@ -4,6 +4,7 @@ import com.intellij.json.psi.JsonArray
 import com.intellij.json.psi.JsonFile
 import com.intellij.json.psi.JsonObject
 import com.intellij.json.psi.JsonProperty
+import com.intellij.json.psi.JsonPsiUtil
 import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.json.psi.JsonValue
 import com.intellij.lang.javascript.psi.JSArgumentList
@@ -159,9 +160,9 @@ object Translations {
      * reformatearía los elementos PSI nuevos con su propio estilo. El valor se copia tal cual del idioma
      * base, que está a la misma profundidad, así que su indentación interna coincide.
      */
-    fun copyMissing(base: JsonObject, target: JsonObject, only: Collection<String>? = null): Int {
+    fun copyMissing(base: JsonObject, target: JsonObject, only: Collection<String>? = null, prefix: String = ""): Int {
         val pending = LinkedHashMap<JsonObject, MutableList<String>>()
-        collectMissing(base, target, only, pending)
+        collectMissing(base, target, only, prefix, pending)
         if (pending.isEmpty()) return 0
 
         val file = target.containingFile
@@ -180,6 +181,7 @@ object Translations {
         base: JsonObject,
         target: JsonObject,
         only: Collection<String>?,
+        prefix: String,
         pending: MutableMap<JsonObject, MutableList<String>>,
     ) {
         base.propertyList.filter { only == null || it.name in only }.forEach { baseProp ->
@@ -187,12 +189,28 @@ object Translations {
             val baseValue = baseProp.value ?: return@forEach
             when {
                 existing == null ->
-                    pending.getOrPut(target) { mutableListOf() } += "${baseProp.nameElement.text}: ${baseValue.text}"
+                    pending.getOrPut(target) { mutableListOf() } += "${baseProp.nameElement.text}: ${withPrefix(baseValue, prefix)}"
                 baseValue is JsonObject && existing.value is JsonObject ->
-                    collectMissing(baseValue, existing.value as JsonObject, null, pending)
+                    collectMissing(baseValue, existing.value as JsonObject, null, prefix, pending)
             }
         }
     }
+
+    /** Texto del valor con `prefix` delante de cada texto (no de las claves): `"[ES] Continuar"`. */
+    private fun withPrefix(value: JsonValue, prefix: String): String {
+        if (prefix.isEmpty()) return value.text
+        val start = value.textRange.startOffset
+        val literals = (PsiTreeUtil.findChildrenOfType(value, JsonStringLiteral::class.java) + listOfNotNull(value as? JsonStringLiteral))
+            .filter { !JsonPsiUtil.isPropertyKey(it) && !it.value.startsWith(prefix) }
+            .sortedByDescending { it.textRange.startOffset }
+        val text = StringBuilder(value.text)
+        literals.forEach { text.insert(it.textRange.startOffset - start + 1, prefix) }
+        return text.toString()
+    }
+
+    /** Prefijo para marcar textos copiados (`"[ES] "`), o "" si está desactivado. */
+    fun copyPrefix(files: TranslationFiles): String =
+        if (options.markCopiedTranslations) "[${files.baseLang}] " else ""
 
     /** (offset, texto) para agregar `entries` al final del objeto, con su separador e indentación. */
     private fun insertion(obj: JsonObject, entries: List<String>, unit: String): Pair<Int, String> {

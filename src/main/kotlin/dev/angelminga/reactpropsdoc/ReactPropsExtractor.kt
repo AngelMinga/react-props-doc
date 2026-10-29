@@ -325,6 +325,9 @@ object ReactPropsExtractor {
 
     // ---------- Componentes propios (propTypes / desestructuración) ----------
 
+    /** `Componente.propTypes = { ... }`, si existe. */
+    fun propTypesObject(component: ReactComponent) = objectAssignedTo(component, "propTypes")
+
     /** Busca `Componente.<field> = { ... }` en el archivo del componente. */
     private fun objectAssignedTo(component: ReactComponent, field: String): JSObjectLiteralExpression? {
         val target = "${component.name}.$field"
@@ -336,12 +339,14 @@ object ReactPropsExtractor {
     /**
      * Props usadas por el componente (desestructuradas o `props.xxx`), con su valor por defecto.
      * `complete` = se puede afirmar que no usa otras (sin `...rest`, `{...props}` ni `props` pasado entero).
+     * `anchors` = primer lugar donde aparece cada prop (para marcarla en el editor).
      */
-    private data class PropsUsage(val props: Map<String, String?>, val complete: Boolean)
+    data class PropsUsage(val props: Map<String, String?>, val complete: Boolean, val anchors: Map<String, PsiElement>)
 
-    private fun propsUsage(function: JSFunction?): PropsUsage {
-        val param = function?.parameters?.firstOrNull() ?: return PropsUsage(emptyMap(), false)
+    fun propsUsage(function: JSFunction?): PropsUsage {
+        val param = function?.parameters?.firstOrNull() ?: return PropsUsage(emptyMap(), false, emptyMap())
         val result = LinkedHashMap<String, String?>()
+        val anchors = LinkedHashMap<String, PsiElement>()
         var complete = true
 
         fun collect(obj: JSDestructuringObject?) {
@@ -352,20 +357,24 @@ object ReactPropsExtractor {
                 val name = p.name ?: return@forEach
                 val default = p.destructuringElement?.initializer?.text?.compact()
                 result.putIfAbsent(name, default)
+                anchors.putIfAbsent(name, p)
             }
         }
 
         when (param) {
             is JSDestructuringParameter -> collect(param.target as? JSDestructuringObject)
             is JSParameter -> {
-                val paramName = param.name ?: return PropsUsage(emptyMap(), false)
+                val paramName = param.name ?: return PropsUsage(emptyMap(), false, emptyMap())
                 PsiTreeUtil.findChildrenOfType(function, JSReferenceExpression::class.java)
                     .filter { it.qualifier == null && it.referenceName == paramName }
                     .forEach { ref ->
                         val parent = ref.parent
                         when {
                             parent is JSReferenceExpression && parent.qualifier == ref ->
-                                parent.referenceName?.let { result.putIfAbsent(it, null) }
+                                parent.referenceName?.let {
+                                    result.putIfAbsent(it, null)
+                                    anchors.putIfAbsent(it, parent.referenceNameElement ?: parent)
+                                }
                             parent is JSDestructuringElement && parent.initializer == ref ->
                                 collect(parent.target as? JSDestructuringObject)
                             else -> complete = false
@@ -374,7 +383,7 @@ object ReactPropsExtractor {
             }
             else -> complete = false
         }
-        return PropsUsage(result, complete)
+        return PropsUsage(result, complete, anchors)
     }
 
     /** true si el componente ya documenta sus props con JSDoc (`@param props.xxx`), para no duplicar. */

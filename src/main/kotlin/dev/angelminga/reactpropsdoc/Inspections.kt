@@ -1,5 +1,6 @@
 package dev.angelminga.reactpropsdoc
 
+import com.intellij.codeInsight.intention.PriorityAction
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFix
@@ -8,14 +9,23 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.json.psi.JsonFile
 import com.intellij.json.psi.JsonObject
+import com.intellij.json.psi.JsonPsiUtil
+import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSDestructuringElement
 import com.intellij.lang.javascript.psi.JSDestructuringObject
+import com.intellij.lang.javascript.psi.JSDestructuringProperty
+import com.intellij.lang.javascript.psi.JSDestructuringShorthandedProperty
 import com.intellij.lang.javascript.psi.JSLiteralExpression
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.search.LocalSearchScope
+import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.PsiTreeUtil
 
 /** `const { x } = useAlgo()` donde el hook no devuelve `x` (llega como `undefined`). */
 class HookDestructuringInspection : LocalInspectionTool() {
@@ -33,18 +43,77 @@ class HookDestructuringInspection : LocalInspectionTool() {
             if (hook.partial || hook.returnsArray || hook.returns.isEmpty()) return
             val returned = hook.returns.map { it.name }.toSet()
 
+            val destructured = obj.properties.mapNotNull { it.name }.toSet()
             obj.properties.forEach { property ->
                 if (property.text.startsWith("...")) return@forEach
                 val name = property.name ?: return@forEach
                 if (name !in returned) {
+                    // Opciones: lo que devuelve el hook y aún no se desestructura, de más a menos parecido
+                    val fixes = (returned - destructured)
+                        .sortedBy { levenshtein(it.lowercase(), name.lowercase()) }
+                        .take(MAX_SUGGESTIONS)
+                        .mapIndexed { index, candidate -> ReplaceHookValueFix(candidate, index) }
                     holder.registerProblem(
                         property,
                         "${hook.hook.name}() no devuelve '$name'. Devuelve: ${returned.joinToString(", ")}",
                         ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+                        *fixes.toTypedArray(),
                     )
                 }
             }
         }
+    }
+}
+
+private const val MAX_SUGGESTIONS = 4
+
+private fun levenshtein(a: String, b: String): Int {
+    var previous = IntArray(b.length + 1) { it }
+    for (i in 1..a.length) {
+        val current = IntArray(b.length + 1)
+        current[0] = i
+        for (j in 1..b.length) {
+            current[j] = minOf(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
+        }
+        previous = current
+    }
+    return previous[b.length]
+}
+
+/**
+ * Cambia el valor desestructurado por uno que el hook sí devuelve.
+ * `{ viejo }` → `{ nuevo }` y renombra los usos de la variable; `{ viejo: local }` → `{ nuevo: local }`.
+ */
+class ReplaceHookValueFix(private val newName: String, private val rank: Int) : LocalQuickFix, PriorityAction {
+
+    override fun getFamilyName() = "Cambiar por un valor que devuelve el hook"
+
+    // Alt+Enter ordena por prioridad y luego alfabéticamente: la opción más parecida va primero
+    override fun getPriority() = if (rank == 0) PriorityAction.Priority.HIGH else PriorityAction.Priority.NORMAL
+
+    override fun getName() = "Cambiar por '$newName'"
+
+    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+        val property = descriptor.psiElement as? JSDestructuringProperty ?: return
+        val file = property.containingFile
+        val documents = PsiDocumentManager.getInstance(project)
+        val document = documents.getDocument(file) ?: return
+
+        val ranges = if (property is JSDestructuringShorthandedProperty) {
+            val variable = property.destructuringElement ?: return
+            val declaration = variable.nameIdentifier?.textRange ?: return
+            val usages = ReferencesSearch.search(variable, LocalSearchScope(file)).findAll()
+                .map { it.element.textRange.cutOut(it.rangeInElement) }
+            listOf(declaration) + usages
+        } else {
+            // `{ clave: local }`: la clave va al inicio de la propiedad
+            val name = property.name ?: return
+            if (!property.text.startsWith(name)) return
+            listOf(TextRange.from(property.textRange.startOffset, name.length))
+        }
+        ranges.distinct().sortedByDescending { it.startOffset }
+            .forEach { document.replaceString(it.startOffset, it.endOffset, newName) }
+        documents.commitDocument(document)
     }
 }
 
@@ -138,6 +207,13 @@ class TranslationFileInspection : LocalInspectionTool() {
                         CopyFromBaseLanguageFix(listOf(lang), null, missingPages),
                     )
                 }
+                // Textos copiados con la corrección rápida y aún sin traducir: "[ES] …"
+                val marker = "[${files.baseLang}] "
+                PsiTreeUtil.findChildrenOfType(root, JsonStringLiteral::class.java)
+                    .filter { !JsonPsiUtil.isPropertyKey(it) && it.value.startsWith(marker) }
+                    .forEach {
+                        holder.registerProblem(it, "Texto sin traducir (copiado de ${files.base.name})", ProblemHighlightType.WEAK_WARNING)
+                    }
                 root.propertyList.forEach { property ->
                     val basePage = baseRoot.findProperty(property.name)?.value as? JsonObject ?: return@forEach
                     val page = property.value as? JsonObject ?: return@forEach
@@ -185,17 +261,18 @@ class CopyFromBaseLanguageFix(
 
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val files = Translations.files(project) ?: return
+        val prefix = Translations.copyPrefix(files)
         langs.forEach { lang ->
             val baseRoot = files.root(files.baseLang) ?: return@forEach
             val root = files.root(lang) ?: return@forEach
             if (page == null) {
-                Translations.copyMissing(baseRoot, root, keys)
+                Translations.copyMissing(baseRoot, root, keys, prefix)
                 return@forEach
             }
             val basePage = files.page(files.baseLang, page) ?: return@forEach
             val targetPage = files.page(lang, page)
-            if (targetPage == null) Translations.copyMissing(baseRoot, root, listOf(page))
-            else Translations.copyMissing(basePage, targetPage, keys)
+            if (targetPage == null) Translations.copyMissing(baseRoot, root, listOf(page), prefix)
+            else Translations.copyMissing(basePage, targetPage, keys, prefix)
         }
     }
 }

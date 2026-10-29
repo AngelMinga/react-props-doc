@@ -190,7 +190,7 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
         // El cambio queda en el documento (en memoria) hasta que se guarda
         val text = FileDocumentManager.getInstance().getDocument(en)!!.text
         println(text)
-        assertTrue(text, text.contains("\"button\": \"Continuar\""))
+        assertTrue(text, text.contains("\"button\": \"[ES] Continuar\""))
     }
 
     fun testTranslationFileInspectionAndFix() {
@@ -206,9 +206,9 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
         myFixture.getAllQuickFixes().filter { it.text.startsWith("Agregar") }.forEach { myFixture.launchAction(it) }
         val text = myFixture.editor.document.text
         println(text)
-        assertTrue(text, text.contains("\"FORM\": \"Data entry\", \"CONFIRM\": \"Confirmar\" }"))
-        assertTrue("Respeta la indentación con tabs", text.contains("\n\t\t\"button\": \"Continuar\""))
-        assertTrue("Respeta la indentación con tabs", text.contains("\n\t\"loginPage\": { \"title\": \"Iniciar sesión\" }"))
+        assertTrue(text, text.contains("\"FORM\": \"Data entry\", \"CONFIRM\": \"[ES] Confirmar\" }"))
+        assertTrue("Respeta la indentación con tabs", text.contains("\n\t\t\"button\": \"[ES] Continuar\""))
+        assertTrue("Respeta la indentación con tabs", text.contains("\n\t\"loginPage\": { \"title\": \"[ES] Iniciar sesión\" }"))
         assertEmpty(problems().filter { it.startsWith("Falta") })
     }
 
@@ -239,7 +239,7 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
         assertContainsElements(problems(), "La página 'loginPage' falta en EN")
         myFixture.launchAction(myFixture.findSingleIntention("Agregar la página 'loginPage' a en.json"))
         val en = FileDocumentManager.getInstance().getDocument(myFixture.findFileInTempDir("translate/en.json"))!!.text
-        assertTrue(en, en.contains("\"loginPage\": { \"title\": \"Iniciar sesión\" }"))
+        assertTrue(en, en.contains("\"loginPage\": { \"title\": \"[ES] Iniciar sesión\" }"))
     }
 
     fun testPageWithMissingKeysQuickFix() {
@@ -249,8 +249,8 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
         assertContainsElements(problems(), "A la página 'internalTransferPage' le faltan claves en EN")
         myFixture.launchAction(myFixture.findSingleIntention("Agregar las claves que faltan de 'internalTransferPage' a en.json"))
         val en = FileDocumentManager.getInstance().getDocument(myFixture.findFileInTempDir("translate/en.json"))!!.text
-        assertTrue(en, en.contains("\"CONFIRM\": \"Confirmar\""))
-        assertTrue(en, en.contains("\"button\": \"Continuar\""))
+        assertTrue(en, en.contains("\"CONFIRM\": \"[ES] Confirmar\""))
+        assertTrue(en, en.contains("\"button\": \"[ES] Continuar\""))
     }
 
     fun testHoverExplainsHowToAddMissing() {

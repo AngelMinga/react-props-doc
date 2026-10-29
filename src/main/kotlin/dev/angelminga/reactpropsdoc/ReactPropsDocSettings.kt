@@ -29,6 +29,7 @@ class ReactPropsDocSettings : SimplePersistentStateComponent<ReactPropsDocSettin
         var showTranslations by property(true)
         var translationFunction by string("getLanguagePage")
         var baseLanguage by string("es")
+        var markCopiedTranslations by property(true)
     }
 
     companion object {
@@ -59,6 +60,10 @@ class ReactPropsDocConfigurable : BoundConfigurable("React Props Doc") {
                 row { checkBox("Mostrar los textos por idioma al pasar el mouse").bindSelected(options::showTranslations) }
                 row("Función que devuelve los textos de una página:") {
                     textField().bindText({ options.translationFunction ?: "" }, { options.translationFunction = it.trim() })
+                }
+                row {
+                    checkBox("Marcar con [ES] los textos copiados del idioma base (para encontrar lo que falta traducir)")
+                        .bindSelected(options::markCopiedTranslations)
                 }
                 row("Idioma base (archivo <idioma>.json):") {
                     textField().columns(6).bindText({ options.baseLanguage ?: "" }, { options.baseLanguage = it.trim().lowercase() })

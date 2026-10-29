@@ -8,12 +8,13 @@
         sin tener que agregar JSDoc. Para componentes de librerías con tipos (<code>.d.ts</code>, como
         @mui/material) muestra sus props propias con tipo, valor por defecto y descripción, y las heredadas.
         <ul>
-          <li>Marca props usadas sin declarar en <code>propTypes</code> y declaradas que no se usan.</li>
+          <li>Marca props usadas sin declarar en <code>propTypes</code> y declaradas que no se usan; Alt+Enter las
+              agrega a <code>propTypes</code> (deduciendo el tipo) o genera el bloque completo.</li>
           <li>Hover sobre una prop: si es requerida, su valor por defecto y sus valores posibles.</li>
-          <li>Hooks: parámetros y lo que devuelven, y aviso al desestructurar un valor que el hook no devuelve.</li>
+          <li>Hooks: parámetros y lo que devuelven, y aviso al desestructurar un valor que el hook no devuelve (Alt+Enter lo cambia por uno que sí devuelve).</li>
           <li>Traducciones (<code>getLanguagePage('página')</code>): autocompletado y Ctrl+clic de páginas, autocompletado
               de claves, textos por idioma al pasar el mouse, avisos de páginas/claves inexistentes o faltantes en algún
-              idioma, y corrección rápida que las copia desde el idioma base.</li>
+              idioma, y corrección rápida que las copia desde el idioma base marcadas con <code>[ES]</code> para traducirlas.</li>
           <li>Ajustes en Settings → Tools → React Props Doc.</li>
         </ul>
     ]]></description>
@@ -45,6 +46,16 @@
                          displayName="Archivo de traducción con páginas o claves faltantes"
                          groupName="React Props Doc" enabledByDefault="true" level="WARNING"
                          implementationClass="dev.angelminga.reactpropsdoc.TranslationFileInspection"/>
+
+        <localInspection language="JavaScript" shortName="ReactPropsDocUndeclaredProp"
+                         displayName="Prop usada sin declarar en propTypes"
+                         groupName="React Props Doc" enabledByDefault="true" level="WEAK WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.UndeclaredPropInspection"/>
+        <intentionAction>
+            <language>JavaScript</language>
+            <className>dev.angelminga.reactpropsdoc.GeneratePropTypesIntention</className>
+            <category>React Props Doc</category>
+        </intentionAction>
 
         <applicationConfigurable parentId="tools"
                                  id="dev.angelminga.reactpropsdoc.settings"
