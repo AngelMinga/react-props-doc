@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.angelminga"
-version = "1.6.1"
+version = "1.7.0"
 
 repositories {
     mavenCentral()
@@ -43,4 +43,5 @@ intellijPlatform {
 tasks.test {
     // Prueba de humo opcional contra un proyecto real: -PrealProject=/ruta/al/proyecto
     providers.gradleProperty("realProject").orNull?.let { environment("REACT_PROPS_DOC_PROJECT", it) }
+    providers.gradleProperty("realMui").orNull?.let { environment("REACT_PROPS_DOC_MUI", it) }
 }

@@ -177,6 +177,18 @@ object Translations {
         return pending.values.sumOf { it.size }
     }
 
+    /** Agrega `entries` (`"clave": valor`) al final de `obj`, respetando la indentación del archivo. */
+    fun appendEntries(obj: JsonObject, entries: List<String>) {
+        if (entries.isEmpty()) return
+        val file = obj.containingFile
+        val documents = PsiDocumentManager.getInstance(file.project)
+        val document = documents.getDocument(file) ?: return
+        val unit = if ("\n\t" in file.text) "\t" else "  "
+        val (offset, text) = insertion(obj, entries, unit)
+        document.insertString(offset, text)
+        documents.commitDocument(document)
+    }
+
     private fun collectMissing(
         base: JsonObject,
         target: JsonObject,

@@ -15,6 +15,8 @@
           <li>Traducciones (<code>getLanguagePage('página')</code>): autocompletado y Ctrl+clic de páginas, autocompletado
               de claves, textos por idioma al pasar el mouse, avisos de páginas/claves inexistentes o faltantes en algún
               idioma, y corrección rápida que las copia desde el idioma base marcadas con <code>[ES]</code> para traducirlas.</li>
+          <li>Aviso de props que el componente no acepta (<code>&lt;Button text="…"&gt;</code>) con correcciones.</li>
+          <li>Extraer texto fijo del JSX a las traducciones (Alt+Enter).</li>
           <li>Ajustes en Settings → Tools → React Props Doc.</li>
         </ul>
     ]]></description>
@@ -51,6 +53,19 @@
                          displayName="Prop usada sin declarar en propTypes"
                          groupName="React Props Doc" enabledByDefault="true" level="WEAK WARNING"
                          implementationClass="dev.angelminga.reactpropsdoc.UndeclaredPropInspection"/>
+        <localInspection language="JavaScript" shortName="ReactPropsDocUnknownProp"
+                         displayName="Prop que el componente no acepta"
+                         groupName="React Props Doc" enabledByDefault="true" level="WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.UnknownPropInspection"/>
+        <localInspection language="JavaScript" shortName="ReactPropsDocHardcodedText"
+                         displayName="Texto fijo en JSX sin traducir"
+                         groupName="React Props Doc" enabledByDefault="false" level="WEAK WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.HardcodedTextInspection"/>
+        <intentionAction>
+            <language>JavaScript</language>
+            <className>dev.angelminga.reactpropsdoc.ExtractTextToTranslationIntention</className>
+            <category>React Props Doc</category>
+        </intentionAction>
         <intentionAction>
             <language>JavaScript</language>
             <className>dev.angelminga.reactpropsdoc.GeneratePropTypesIntention</className>

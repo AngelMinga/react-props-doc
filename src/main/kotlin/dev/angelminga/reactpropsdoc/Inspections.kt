@@ -67,7 +67,7 @@ class HookDestructuringInspection : LocalInspectionTool() {
 
 private const val MAX_SUGGESTIONS = 4
 
-private fun levenshtein(a: String, b: String): Int {
+internal fun levenshtein(a: String, b: String): Int {
     var previous = IntArray(b.length + 1) { it }
     for (i in 1..a.length) {
         val current = IntArray(b.length + 1)

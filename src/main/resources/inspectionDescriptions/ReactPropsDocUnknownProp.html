@@ -1,0 +1,10 @@
+<html>
+<body>
+Reporta props que el componente no acepta, por ejemplo <code>&lt;Button text="Buscar" /&gt;</code> en MUI
+(<code>Button</code> no tiene <code>text</code>: el texto no se muestra).
+<p>En componentes de librería (MUI) se consideran sus props, las heredadas y los atributos HTML válidos; no se
+revisan los que usan MUI System (Box, Typography, Grid, Stack). En componentes propios solo se revisa cuando se
+conocen todas las props que usa (sin <code>...rest</code> ni <code>{...props}</code>).</p>
+<p>Correcciones: cambiar por una prop de nombre parecido, usar el texto como contenido (children) o quitarla.</p>
+</body>
+</html>

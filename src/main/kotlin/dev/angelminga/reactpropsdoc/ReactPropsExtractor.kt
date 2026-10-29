@@ -60,6 +60,8 @@ object ReactPropsExtractor {
     private const val MAX_DEPTH = 8
     private const val MAX_INHERITED = 25
 
+    private val COMPONENT_WRAPPERS = setOf("memo", "forwardRef")
+
     /** Tipos genéricos de utilidad que aparecen en `extends` y no aportan props propias. */
     private val IGNORED_BASES = setOf("StandardProps", "DistributiveOmit", "Omit", "Partial", "Pick", "OverridableStringUnion")
 
@@ -120,7 +122,11 @@ object ReactPropsExtractor {
         if (expr == null || depth > MAX_DEPTH) return null
         return when (expr) {
             is JSFunction -> expr
-            is JSCallExpression -> unwrapFunction(expr.argumentList?.arguments?.firstOrNull(), depth + 1)
+            // Solo `memo(...)` / `forwardRef(...)` envuelven al componente; en `styled(X)(fn)` la función es de estilos
+            is JSCallExpression -> {
+                val callee = (expr.methodExpression as? JSReferenceExpression)?.referenceName
+                if (callee in COMPONENT_WRAPPERS) unwrapFunction(expr.argumentList?.arguments?.firstOrNull(), depth + 1) else null
+            }
             is JSReferenceExpression -> when (val resolved = expr.resolve()) {
                 is JSFunction -> resolved
                 is JSVariable -> unwrapFunction(resolved.initializer, depth + 1)
@@ -286,6 +292,57 @@ object ReactPropsExtractor {
             attr("loading", "\"eager\" | \"lazy\""),
         ) + COMMON_HTML_ATTRIBUTES,
     )
+
+    /**
+     * Todas las props que acepta un componente de `.d.ts` (sin atributos HTML): todas las interfaces de su
+     * archivo (incluye variantes como `OutlinedTextFieldProps`), las de su base `ExtendX` y las de `extends`.
+     * null si no se puede determinar: sin interfaz de props, con MUI System o con un tipo base sin resolver.
+     */
+    fun allLibraryPropNames(component: ReactComponent): Set<String>? {
+        val propsInterface = propsInterfaceIn(component.file, component.name)
+            ?: PsiTreeUtil.findChildrenOfType(component.declaration, JSReferenceExpression::class.java)
+                .filter { it.referenceName?.endsWith("TypeMap") == true }
+                .firstNotNullOfOrNull { ref -> followAliases(ref.resolve())?.containingFile?.let { propsInterfaceIn(it, component.name) } }
+            ?: return null
+        val extendsList = propsInterface.extendsList
+        if (extendsList?.text?.contains("SystemProps") == true) return null
+
+        fun allMembers(file: PsiFile) = PsiTreeUtil.findChildrenOfType(file, TypeScriptInterface::class.java)
+            .flatMap { members(it) }.map { it.name }
+
+        val names = mutableSetOf<String>()
+        names += allMembers(component.file)
+        names += allMembers(propsInterface.containingFile)
+        extendedComponentProps(component, emptySet()).forEach { group -> names += group.props.map { it.name } }
+        PsiTreeUtil.findChildrenOfType(component.declaration, JSReferenceExpression::class.java)
+            .filter { it.referenceName?.matches(Regex("Extend[A-Z]\\w*")) == true && it.referenceName?.endsWith("TypeMap") == false }
+            .forEach { ref -> followAliases(ref.resolve())?.containingFile?.let { names += allMembers(it) } }
+        if (!collectExtends(propsInterface, names, mutableSetOf(), 0)) return null
+        return names
+    }
+
+    /**
+     * Agrega las props de los tipos en `extends` (y los de estos, recursivamente). Devuelve false si alguno no
+     * se puede resolver: entonces no se conoce el conjunto completo de props y no conviene revisar.
+     */
+    private fun collectExtends(iface: TypeScriptInterface, names: MutableSet<String>, visited: MutableSet<PsiElement>, depth: Int): Boolean {
+        if (!visited.add(iface) || depth > MAX_DEPTH) return true
+        val extendsList = iface.extendsList ?: return true
+        for (ref in PsiTreeUtil.findChildrenOfType(extendsList, JSReferenceExpression::class.java).distinctBy { it.text }) {
+            val name = ref.referenceName ?: continue
+            if (name in IGNORED_BASES || name == "Theme" || ref.qualifier?.text == "React") continue
+            val target = followAliases(ref.resolve()) ?: return false
+            names += typeMembers(target, name).map { it.name }
+            val nested = when (target) {
+                is TypeScriptInterface -> listOf(target)
+                is TypeScriptTypeAlias -> PsiTreeUtil.findChildrenOfType(target, JSReferenceExpression::class.java)
+                    .mapNotNull { followAliases(it.resolve()) as? TypeScriptInterface }
+                else -> emptyList()
+            } + listOfNotNull(propsInterfaceIn(target.containingFile, name.removeSuffix("OwnProps").removeSuffix("Props")))
+            if (nested.any { !collectExtends(it, names, visited, depth + 1) }) return false
+        }
+        return true
+    }
 
     private fun propsInterfaceIn(file: PsiFile, base: String): TypeScriptInterface? {
         val interfaces = PsiTreeUtil.findChildrenOfType(file, TypeScriptInterface::class.java).associateBy { it.name }

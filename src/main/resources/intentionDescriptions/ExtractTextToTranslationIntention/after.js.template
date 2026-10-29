@@ -1,0 +1,2 @@
+const { title, monto } = getLanguagePage('page')
+return <span><spot>{monto}</spot></span>

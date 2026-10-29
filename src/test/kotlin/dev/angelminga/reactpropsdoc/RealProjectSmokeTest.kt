@@ -25,6 +25,16 @@ class RealProjectSmokeTest : BasePlatformTestCase() {
             .filter { it.isFile && ((it.extension in setOf("js", "jsx", "json") && "/src/" in it.path) || it.name == "jsconfig.json") }
             .toList()
         val allFiles = sources.map { myFixture.addFileToProject(it.relativeTo(root).path, it.readText()) }
+        // Tipos reales de MUI (opcional): -PrealMui=/ruta/a/node_modules con @mui/material y @mui/system
+        System.getenv("REACT_PROPS_DOC_MUI")?.let(::File)?.let { modules ->
+            listOf("@mui/material", "@mui/system", "@mui/types", "@mui/base").forEach { pkg ->
+                val dir = File(modules, pkg).canonicalFile
+                if (!dir.isDirectory) return@forEach
+                dir.walkTopDown().filter { it.isFile && (it.name.endsWith(".d.ts") || it.name == "package.json") && "/node_modules/" !in it.path.substringAfter(dir.path) }
+                    .forEach { myFixture.addFileToProject("node_modules/$pkg/" + it.relativeTo(dir).path, it.readText()) }
+            }
+            myFixture.addFileToProject("package.json", "{ \"dependencies\": { \"@mui/material\": \"*\", \"@mui/system\": \"*\" } }")
+        }
         val files = allFiles.filter { it.name.endsWith(".js") || it.name.endsWith(".jsx") }
 
         var components = 0
@@ -59,7 +69,10 @@ class RealProjectSmokeTest : BasePlatformTestCase() {
 
         // Inspecciones nuevas sobre todo el proyecto
         val context = InspectionManager.getInstance(project).createNewGlobalContext() as GlobalInspectionContext
-        val tools = listOf(HookDestructuringInspection(), TranslationKeyInspection(), TranslationFileInspection(), UndeclaredPropInspection())
+        val tools = listOf(
+            HookDestructuringInspection(), TranslationKeyInspection(), TranslationFileInspection(),
+            UndeclaredPropInspection(), UnknownPropInspection(), HardcodedTextInspection(),
+        )
         tools.forEach { tool ->
             val wrapper = LocalInspectionToolWrapper(tool)
             val found = allFiles.flatMap { file ->
@@ -68,7 +81,7 @@ class RealProjectSmokeTest : BasePlatformTestCase() {
                 }
             }
             println("SMOKE ${tool.javaClass.simpleName}: ${found.size} problemas")
-            found.take(40).forEach { println("SMOKE   $it") }
+            found.take(60).forEach { println("SMOKE   $it") }
         }
     }
 
