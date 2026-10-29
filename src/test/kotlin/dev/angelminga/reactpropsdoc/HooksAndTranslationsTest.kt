@@ -76,7 +76,8 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
             		"stepLabels": { "FORM": "Ingreso de datos", "CONFIRM": "Confirmar" },
             		"button": "Continuar"
             	},
-            	"loginPage": { "title": "Iniciar sesión" }
+            	"loginPage": { "title": "Iniciar sesión" },
+            	"fingerInfo": "Da la vuelta a tu documento"
             }
             """.trimIndent(),
         )
@@ -87,7 +88,8 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
             	"internalTransferPage": {
             		"title": "Internal transfer",
             		"stepLabels": { "FORM": "Data entry" }
-            	}
+            	},
+            	"fingerInfo": "Turn your ID card over"
             }
             """.trimIndent(),
         )
@@ -100,7 +102,8 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
             		"stepLabels": { "FORM": "Willaykuna", "CONFIRM": "Kamachiy" },
             		"button": "Katiy"
             	},
-            	"loginPage": { "title": "Yaykuy" }
+            	"loginPage": { "title": "Yaykuy" },
+            	"fingerInfo": "Tikray"
             }
             """.trimIndent(),
         )
@@ -207,5 +210,71 @@ class HooksAndTranslationsTest : BasePlatformTestCase() {
         assertTrue("Respeta la indentación con tabs", text.contains("\n\t\t\"button\": \"Continuar\""))
         assertTrue("Respeta la indentación con tabs", text.contains("\n\t\"loginPage\": { \"title\": \"Iniciar sesión\" }"))
         assertEmpty(problems().filter { it.startsWith("Falta") })
+    }
+
+    // ---------- `|| {}` y aviso en la página ----------
+
+    fun testFallbackOrEmptyObjectIsRecognized() {
+        addTranslations()
+        myFixture.enableInspections(TranslationKeyInspection())
+        page("const { button, nope } = getLanguagePage('internalTransferPage') || {}")
+        val problems = problems()
+        assertContainsElements(
+            problems,
+            "'button' de 'internalTransferPage' falta en EN",
+            "'nope' no existe en la página 'internalTransferPage' de es.json",
+        )
+    }
+
+    fun testKeyCompletionWithFallback() {
+        addTranslations()
+        page("const { <caret> } = getLanguagePage('internalTransferPage') ?? {}")
+        assertContainsElements(myFixture.completeBasic()?.map { it.lookupString }.orEmpty(), "title", "button")
+    }
+
+    fun testPageMissingInLanguageQuickFix() {
+        addTranslations()
+        myFixture.enableInspections(TranslationKeyInspection())
+        page("const { title } = getLanguagePage('login<caret>Page') || {}")
+        assertContainsElements(problems(), "La página 'loginPage' falta en EN")
+        myFixture.launchAction(myFixture.findSingleIntention("Agregar la página 'loginPage' a en.json"))
+        val en = FileDocumentManager.getInstance().getDocument(myFixture.findFileInTempDir("translate/en.json"))!!.text
+        assertTrue(en, en.contains("\"loginPage\": { \"title\": \"Iniciar sesión\" }"))
+    }
+
+    fun testPageWithMissingKeysQuickFix() {
+        addTranslations()
+        myFixture.enableInspections(TranslationKeyInspection())
+        page("const t = getLanguagePage('internal<caret>TransferPage')")
+        assertContainsElements(problems(), "A la página 'internalTransferPage' le faltan claves en EN")
+        myFixture.launchAction(myFixture.findSingleIntention("Agregar las claves que faltan de 'internalTransferPage' a en.json"))
+        val en = FileDocumentManager.getInstance().getDocument(myFixture.findFileInTempDir("translate/en.json"))!!.text
+        assertTrue(en, en.contains("\"CONFIRM\": \"Confirmar\""))
+        assertTrue(en, en.contains("\"button\": \"Continuar\""))
+    }
+
+    fun testHoverExplainsHowToAddMissing() {
+        addTranslations()
+        page("const { but<caret>ton } = getLanguagePage('internalTransferPage') || {}")
+        val doc = docAtCaret().orEmpty()
+        assertTrue(doc, doc.contains("Cómo agregarla:"))
+        assertTrue(doc, doc.contains("Agregar … a en.json"))
+    }
+
+    fun testHookDestructuringWithFallback() {
+        myFixture.enableInspections(HookDestructuringInspection())
+        myFixture.addFileToProject("useOTP.js", otpHook)
+        myFixture.configureByText(
+            "C.jsx",
+            "import { useOTPCreditPayment } from './useOTP'\nexport const C = () => { const { nope } = useOTPCreditPayment({}) || {}; return nope }",
+        )
+        assertTrue(problems().any { "no devuelve 'nope'" in it })
+    }
+
+    fun testTextPageIsNotReportedAsMissing() {
+        addTranslations()
+        myFixture.enableInspections(TranslationKeyInspection())
+        page("const text = getLanguagePage('fingerInfo')")
+        assertFalse(problems().any { "fingerInfo" in it })
     }
 }

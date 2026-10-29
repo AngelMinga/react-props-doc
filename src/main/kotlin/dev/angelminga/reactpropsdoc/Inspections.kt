@@ -24,7 +24,7 @@ class HookDestructuringInspection : LocalInspectionTool() {
         override fun visitElement(element: PsiElement) {
             val destructuring = element as? JSDestructuringElement ?: return
             val obj = destructuring.target as? JSDestructuringObject ?: return
-            val call = destructuring.initializer as? JSCallExpression ?: return
+            val call = Translations.unwrapFallback(destructuring.initializer) as? JSCallExpression ?: return
             val callee = call.methodExpression as? JSReferenceExpression ?: return
             if (callee.referenceName?.startsWith("use") != true) return
 
@@ -65,11 +65,34 @@ class TranslationKeyInspection : LocalInspectionTool() {
             val page = literal.stringValue ?: return
             if (files.root(files.baseLang)?.findProperty(page) == null) {
                 holder.registerProblem(literal, "La página '$page' no existe en ${files.base.name}")
+                return
+            }
+            // Idiomas donde falta la página entera, o algunas de sus claves (la "página" puede ser un texto suelto)
+            val basePage = files.page(files.baseLang, page)
+            val missingPage = files.missingIn(listOf(page))
+            val incomplete = if (basePage == null) emptyList() else files.others.keys.filter { lang ->
+                lang !in missingPage && Translations.missingPaths(basePage, files.page(lang, page) ?: return@filter false).isNotEmpty()
+            }
+            if (missingPage.isNotEmpty()) {
+                holder.registerProblem(
+                    literal,
+                    "La página '$page' falta en ${missingPage.joinToString(", ")}",
+                    ProblemHighlightType.WEAK_WARNING,
+                    CopyFromBaseLanguageFix(missingPage, null, listOf(page)),
+                )
+            }
+            if (incomplete.isNotEmpty()) {
+                holder.registerProblem(
+                    literal,
+                    "A la página '$page' le faltan claves en ${incomplete.joinToString(", ")}",
+                    ProblemHighlightType.WEAK_WARNING,
+                    CopyFromBaseLanguageFix(incomplete, page, null),
+                )
             }
         }
 
         private fun checkKeys(destructuring: JSDestructuringElement) {
-            val page = Translations.pageOf(destructuring.initializer as? JSCallExpression) ?: return
+            val page = Translations.pageOf(Translations.translationCall(destructuring.initializer)) ?: return
             val obj = destructuring.target as? JSDestructuringObject ?: return
             val files = Translations.files(destructuring.project) ?: return
             val basePage = files.page(files.baseLang, page) ?: return
@@ -147,7 +170,8 @@ class CopyFromBaseLanguageFix(
 
     override fun getName(): String {
         val what = when {
-            page == null -> "${keys.orEmpty().size} página(s)"
+            page == null && keys?.size == 1 -> "la página '${keys.single()}'"
+            page == null -> "${keys.orEmpty().size} páginas"
             keys == null -> "las claves que faltan de '$page'"
             else -> "'${keys.joinToString(", ")}'"
         }

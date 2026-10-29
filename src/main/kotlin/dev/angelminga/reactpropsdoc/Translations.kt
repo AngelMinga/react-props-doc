@@ -7,11 +7,14 @@ import com.intellij.json.psi.JsonProperty
 import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.json.psi.JsonValue
 import com.intellij.lang.javascript.psi.JSArgumentList
+import com.intellij.lang.javascript.psi.JSBinaryExpression
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSDestructuringElement
 import com.intellij.lang.javascript.psi.JSDestructuringObject
 import com.intellij.lang.javascript.psi.JSDestructuringProperty
+import com.intellij.lang.javascript.psi.JSExpression
 import com.intellij.lang.javascript.psi.JSLiteralExpression
+import com.intellij.lang.javascript.psi.JSParenthesizedExpression
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
@@ -77,6 +80,22 @@ object Translations {
         return TranslationFiles(baseLang.uppercase(), files)
     }
 
+    /** `x || {}`, `x ?? {}` y `(x)` → `x`: el valor real de una desestructuración con respaldo. */
+    fun unwrapFallback(expr: JSExpression?): JSExpression? {
+        var current = expr
+        while (true) {
+            current = when (val e = current) {
+                is JSParenthesizedExpression -> e.innerExpression
+                is JSBinaryExpression -> if (e.operationNode?.text in setOf("||", "??")) e.lOperand else return e
+                else -> return e
+            }
+        }
+    }
+
+    /** La llamada `getLanguagePage('…')` de un inicializador, aunque tenga `|| {}`. */
+    fun translationCall(initializer: JSExpression?): JSCallExpression? =
+        (unwrapFallback(initializer) as? JSCallExpression)?.takeIf { pageOf(it) != null }
+
     /** `getLanguagePage('página')` → "página" (solo con un literal de texto como primer argumento). */
     fun pageOf(call: JSCallExpression?): String? {
         val callee = call?.methodExpression as? JSReferenceExpression ?: return null
@@ -94,7 +113,7 @@ object Translations {
     /** `const { title } = getLanguagePage('page')`: la desestructuración, si su inicializador es la llamada. */
     fun destructuringOf(element: PsiElement?): Pair<JSDestructuringObject, String>? {
         val destructuring = PsiTreeUtil.getParentOfType(element, JSDestructuringElement::class.java, false) ?: return null
-        val page = pageOf(destructuring.initializer as? JSCallExpression) ?: return null
+        val page = pageOf(translationCall(destructuring.initializer)) ?: return null
         val obj = destructuring.target as? JSDestructuringObject ?: return null
         return obj to page
     }
@@ -107,7 +126,7 @@ object Translations {
         // Solo el primer nivel de la desestructuración
         val obj = property.parent as? JSDestructuringObject ?: return null
         val destructuring = obj.parent as? JSDestructuringElement ?: return null
-        val call = destructuring.initializer as? JSCallExpression ?: return null
+        val call = translationCall(destructuring.initializer) ?: return null
         val page = pageOf(call) ?: return null
         return TranslationUsage(page, property.name ?: return null, call)
     }

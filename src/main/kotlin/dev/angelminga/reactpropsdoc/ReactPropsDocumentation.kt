@@ -6,6 +6,8 @@ import com.intellij.lang.javascript.psi.JSDestructuringProperty
 import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.model.Pointer
+import com.intellij.openapi.actionSystem.IdeActions
+import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.platform.backend.documentation.DocumentationResult
 import com.intellij.platform.backend.documentation.DocumentationTarget
@@ -119,6 +121,21 @@ object ReactPropsDocumentation {
             files.files.keys.forEach { lang ->
                 val value = Translations.preview(files.valueAt(lang, path))
                 append(section("$lang:", value?.let(::esc) ?: "⚠ <b>falta</b>"))
+            }
+            val missing = files.missingIn(path)
+            if (missing.isNotEmpty()) {
+                val shortcut = KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_SHOW_INTENTION_ACTIONS)
+                    .ifEmpty { "Alt+Enter" }
+                val targets = missing.joinToString(", ") { it.lowercase() + ".json" }
+                append(
+                    section(
+                        "Cómo agregarla:",
+                        "<b>${esc(shortcut)}</b> sobre <code>getLanguagePage(&#39;${esc(path.first())}&#39;)</code> " +
+                            "o sobre la clave → <i>Agregar … a ${esc(targets)}</i>.<br/>" +
+                            "Copia el texto de ${esc(files.baseLang)} para traducirlo después. " +
+                            "También desde ${esc(targets)}: ${esc(shortcut)} sobre la página marcada.",
+                    ),
+                )
             }
         }
         val title = if (path.size == 1) path.first() else path.drop(1).joinToString(".")
