@@ -1,5 +1,8 @@
 package dev.angelminga.reactpropsdoc
 
+import com.intellij.lang.ecmascript6.psi.ES6ExportDefaultAssignment
+import com.intellij.lang.ecmascript6.psi.ES6ImportExportSpecifier
+import com.intellij.lang.ecmascript6.psi.ES6ImportExportSpecifierAlias
 import com.intellij.lang.ecmascript6.psi.ES6ImportedBinding
 import com.intellij.lang.javascript.psi.JSAssignmentExpression
 import com.intellij.lang.javascript.psi.JSCallExpression
@@ -12,6 +15,8 @@ import com.intellij.lang.javascript.psi.JSObjectLiteralExpression
 import com.intellij.lang.javascript.psi.JSParameter
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.lang.javascript.psi.JSVariable
+import com.intellij.lang.javascript.psi.ecma6.TypeScriptInterface
+import com.intellij.lang.javascript.psi.ecma6.TypeScriptPropertySignature
 import com.intellij.lang.javascript.psi.ecmal4.JSClass
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
@@ -24,6 +29,7 @@ data class ReactProp(
     val type: String? = null,
     val required: Boolean = false,
     val defaultValue: String? = null,
+    val description: String? = null,
 )
 
 data class ReactComponent(
@@ -35,7 +41,7 @@ data class ReactComponent(
 
 object ReactPropsExtractor {
 
-    private const val MAX_DEPTH = 5
+    private const val MAX_DEPTH = 8
     private const val MAX_TYPE_LENGTH = 70
 
     /** Resuelve el elemento destino del hover a un componente React (nombre en PascalCase). */
@@ -44,6 +50,22 @@ object ReactPropsExtractor {
         return when (element) {
             is ES6ImportedBinding ->
                 element.findReferencedElements().firstNotNullOfOrNull { findComponent(it, depth + 1) }
+
+            // Re-exportaciones de librerías: `export { default as Button } from './Button'`
+            is ES6ImportExportSpecifierAlias ->
+                findComponent(element.findAliasedElement(), depth + 1)
+                    ?: findComponent(element.findSpecifierElement(), depth + 1)
+
+            is ES6ImportExportSpecifier ->
+                element.resolveOverAliases(HashSet()).firstNotNullOfOrNull { findComponent(it.element, depth + 1) }
+
+            // `export default Button;`
+            is ES6ExportDefaultAssignment ->
+                findComponent(
+                    element.namedElement
+                        ?: PsiTreeUtil.findChildOfType(element, JSReferenceExpression::class.java)?.resolve(),
+                    depth + 1,
+                )
 
             is JSVariable -> {
                 val name = element.name ?: return null
@@ -84,6 +106,8 @@ object ReactPropsExtractor {
     }
 
     fun extractProps(component: ReactComponent): List<ReactProp> {
+        if (component.file.name.endsWith(".d.ts")) return declarationFileProps(component)
+
         val propTypes = objectAssignedTo(component, "propTypes")
         val defaults = objectAssignedTo(component, "defaultProps")
             ?.properties?.mapNotNull { p -> p.name?.let { it to p.value?.text?.compact() } }?.toMap()
@@ -108,6 +132,30 @@ object ReactPropsExtractor {
             if (name !in result) result[name] = ReactProp(name = name, defaultValue = default)
         }
         return result.values.toList()
+    }
+
+    /**
+     * Props declaradas en un `.d.ts` de librería (p. ej. @mui/material): toma solo las props propias del
+     * componente (`XxxOwnProps`, `BaseXxxProps` o `XxxProps`), sin las heredadas de HTML/React.
+     */
+    private fun declarationFileProps(component: ReactComponent): List<ReactProp> {
+        val interfaces = PsiTreeUtil.findChildrenOfType(component.file, TypeScriptInterface::class.java)
+            .associateBy { it.name }
+        val props = listOf("${component.name}OwnProps", "Base${component.name}Props", "${component.name}Props")
+            .firstNotNullOfOrNull { interfaces[it] }
+            ?: return emptyList()
+
+        return props.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>().mapNotNull { member ->
+            val name = member.name ?: return@mapNotNull null
+            val doc = JsDoc.of(member)
+            ReactProp(
+                name = name,
+                type = member.typeDeclaration?.text?.compact()?.let(::truncate),
+                required = !member.isOptional,
+                defaultValue = doc?.defaultValue,
+                description = doc?.summary,
+            )
+        }
     }
 
     /** Busca `Componente.<field> = { ... }` en el archivo del componente. */
@@ -170,8 +218,10 @@ object ReactPropsExtractor {
                     else -> it
                 }
             }
-        return if (type.length > MAX_TYPE_LENGTH) type.take(MAX_TYPE_LENGTH) + "…" else type
+        return truncate(type)
     }
+
+    private fun truncate(type: String) = if (type.length > MAX_TYPE_LENGTH) type.take(MAX_TYPE_LENGTH) + "…" else type
 
     private fun String.compact(): String = replace(Regex("\\s+"), " ").replace(Regex(",\\s*([}\\]])"), "$1").trim()
 }

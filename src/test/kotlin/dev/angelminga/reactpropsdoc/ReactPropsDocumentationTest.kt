@@ -1,15 +1,59 @@
 package dev.angelminga.reactpropsdoc
 
-import com.intellij.codeInsight.documentation.DocumentationManager
+import com.intellij.lang.documentation.ide.IdeDocumentationTargetProvider
+import com.intellij.platform.backend.documentation.impl.computeDocumentationBlocking
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
-class ReactPropsDocumentationProviderTest : BasePlatformTestCase() {
+class ReactPropsDocumentationTest : BasePlatformTestCase() {
 
-    private fun docAtCaret(): String? {
-        val original = myFixture.file.findElementAt(myFixture.caretOffset)
-        val target = DocumentationManager.getInstance(project)
-            .findTargetElement(myFixture.editor, myFixture.file, original)
-        return DocumentationManager.getProviderFromElement(target, original).generateDoc(target, original)
+    override fun getTestDataPath() = "src/test/testData"
+
+    /** Mismo camino que usa el popup del IDE: targets de documentación → HTML. */
+    private fun docAtCaret(): String? =
+        IdeDocumentationTargetProvider.getInstance(project)
+            .documentationTargets(myFixture.editor, myFixture.file, myFixture.caretOffset)
+            .firstNotNullOfOrNull { computeDocumentationBlocking(it.createPointer())?.html }
+
+    private fun muiPage(tag: String): String? {
+        myFixture.copyDirectoryToProject("node_modules", "node_modules")
+        myFixture.copyFileToProject("package.json")
+        myFixture.configureByText(
+            "Page.jsx",
+            """
+            import { Button, TextField, Grid, Dialog, Typography } from '@mui/material'
+            export const Page = () => <$tag />
+            """.trimIndent(),
+        )
+        return docAtCaret().also(::println)
+    }
+
+    fun testMuiButton() {
+        val doc = muiPage("Butt<caret>on")
+        assertNotNull(doc)
+        assertTrue(doc!!, doc.contains("Props ("))
+        assertTrue(doc, doc.contains("<code>disabled</code>: boolean — opcional (= <code>false</code>)"))
+        assertTrue(doc, doc.contains("If `true`, the component is disabled."))
+        assertFalse("No debe listar props HTML heredadas", doc.contains("<code>onClick</code>"))
+    }
+
+    fun testMuiTextField() {
+        val doc = muiPage("TextFi<caret>eld")
+        assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>helperText</code>"))
+    }
+
+    fun testMuiGrid() {
+        val doc = muiPage("Gr<caret>id")
+        assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>container</code>"))
+    }
+
+    fun testMuiDialog() {
+        val doc = muiPage("Dia<caret>log")
+        assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>open</code>: ModalProps[&#39;open&#39;] — <b>requerida</b>"))
+    }
+
+    fun testMuiTypography() {
+        val doc = muiPage("Typogra<caret>phy")
+        assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>variant</code>"))
     }
 
     fun testPropTypesWithBodyDestructuring() {

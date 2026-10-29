@@ -5,19 +5,17 @@
     <description><![CDATA[
         Muestra las props de un componente React (desde <code>propTypes</code>, <code>defaultProps</code>
         y la desestructuración de props) en la documentación al pasar el mouse sobre un tag JSX,
-        sin tener que agregar JSDoc.
+        sin tener que agregar JSDoc. Para componentes de librerías con tipos (<code>.d.ts</code>, como
+        @mui/material) muestra sus props propias con tipo, valor por defecto y descripción.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Registrado en el dialecto para ejecutarse antes que los proveedores de "JavaScript" (incluido el de React) -->
-        <lang.documentationProvider language="ECMAScript 6"
-                                    order="first"
-                                    implementationClass="dev.angelminga.reactpropsdoc.ReactPropsDocumentationProvider"/>
-        <lang.documentationProvider language="JavaScript"
-                                    order="first"
-                                    implementationClass="dev.angelminga.reactpropsdoc.ReactPropsDocumentationProvider"/>
+        <!-- API nueva de documentación: se consulta antes que los lang.documentationProvider (incluido el de React) -->
+        <platform.backend.documentation.psiTargetProvider
+                order="first"
+                implementation="dev.angelminga.reactpropsdoc.ReactPropsDocumentationTargetProvider"/>
     </extensions>
 </idea-plugin>
