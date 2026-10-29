@@ -1,0 +1,9 @@
+<html>
+<body>
+Reporta claves de <code>sx={{ … }}</code> o <code>style={{ … }}</code> que no son propiedades CSS ni atajos de MUI
+(por ejemplo <code>positon</code>), y atajos de MUI usados en <code>style</code>, donde no funcionan
+(<code>style={{ bgcolor: … }}</code>). La corrección rápida cambia la clave por la más parecida.
+<p>Las claves salen de <code>csstype</code> y <code>@mui/system</code> (ver <code>tools/generate_sx_data.py</code>).
+No se revisan selectores (<code>'&amp;:hover'</code>, <code>'@media …'</code>) ni prefijos de navegador.</p>
+</body>
+</html>

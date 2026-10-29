@@ -1,0 +1,629 @@
+# Generado por tools/generate_sx_data.py desde csstype y @mui/system (defaultSxConfig)
+KhtmlBoxAlign	baseline | center | end | start | stretch		obsoleta
+KhtmlBoxDirection	inherit | normal | reverse		obsoleta
+KhtmlBoxFlex	number | string		obsoleta
+KhtmlBoxFlexGroup	number | string		obsoleta
+KhtmlBoxLines	multiple | single		obsoleta
+KhtmlBoxOrdinalGroup	number | string		obsoleta
+KhtmlBoxOrient	block-axis | horizontal | inherit | inline-axis | vertical		obsoleta
+KhtmlBoxPack	center | end | justify | start		obsoleta
+KhtmlLineBreak	anywhere | auto | loose | normal | strict		obsoleta
+KhtmlOpacity	string | number		obsoleta
+KhtmlUserSelect	all | auto | none | text		obsoleta
+MozBackgroundClip	VisualBox | border-area | text | string		obsoleta
+MozBackgroundOrigin	border-box | content-box | padding-box | string		obsoleta
+MozBackgroundSize	número (px) o string | auto | contain | cover | string		obsoleta
+MozBorderRadius	número (px) o string | string		obsoleta
+MozBorderRadiusBottomleft	número (px) o string | string		obsoleta
+MozBorderRadiusBottomright	número (px) o string | string		obsoleta
+MozBorderRadiusTopleft	número (px) o string | string		obsoleta
+MozBorderRadiusTopright	número (px) o string | string		obsoleta
+MozBoxAlign	baseline | center | end | start | stretch		obsoleta
+MozBoxDirection	inherit | normal | reverse		obsoleta
+MozBoxFlex	number | string		obsoleta
+MozBoxOrdinalGroup	number | string		obsoleta
+MozBoxOrient	block-axis | horizontal | inherit | inline-axis | vertical		obsoleta
+MozBoxPack	center | end | justify | start		obsoleta
+MozBoxShadow	none | string		obsoleta
+MozColumnCount	auto | number | string		obsoleta
+MozColumnFill	auto | balance		obsoleta
+MozFloatEdge	border-box | content-box | margin-box | padding-box		obsoleta
+MozForceBrokenImageIcon	0 | string | 1		obsoleta
+MozOpacity	string | number		obsoleta
+MozOutline	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto		obsoleta
+MozOutlineColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto		obsoleta
+MozOutlineStyle	dashed | dotted | double | groove | inset | none | outset | ridge | solid | auto		obsoleta
+MozOutlineWidth	número (px) o string | medium | thick | thin		obsoleta
+MozTextAlignLast	auto | center | end | justify | left | right | start		obsoleta
+MozTextDecorationColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		obsoleta
+MozTextDecorationLine	blink | grammar-error | line-through | none | overline | spelling-error | underline | string		obsoleta
+MozTextDecorationStyle	dashed | dotted | double | solid | wavy		obsoleta
+MozTransitionDelay	TTime | string		obsoleta
+MozTransitionDuration	TTime | string		obsoleta
+MozTransitionProperty	all | none | string		obsoleta
+MozTransitionTimingFunction	CubicBezierEasingFunction | StepEasingFunction | linear | string		obsoleta
+MozUserFocus	ignore | none | normal | select-after | select-all | select-before | select-menu | select-same		obsoleta
+MozUserInput	auto | disabled | enabled | none		obsoleta
+OAnimation	EasingFunction | SingleAnimationDirection | SingleAnimationFillMode | SingleAnimationTimeline | TTime | auto | infinite | none | paused | running | string | number		obsoleta
+OAnimationDelay	TTime | string		obsoleta
+OAnimationDirection	alternate | alternate-reverse | normal | reverse | string		obsoleta
+OAnimationDuration	TTime | auto | string		obsoleta
+OAnimationFillMode	backwards | both | forwards | none | string		obsoleta
+OAnimationIterationCount	infinite | string | number		obsoleta
+OAnimationName	none | string		obsoleta
+OAnimationPlayState	paused | running | string		obsoleta
+OAnimationTimingFunction	CubicBezierEasingFunction | StepEasingFunction | linear | string		obsoleta
+OBackgroundSize	número (px) o string | auto | contain | cover | string		obsoleta
+OBorderImage	none | repeat | round | space | stretch | string | number		obsoleta
+OObjectFit	contain | cover | fill | none | scale-down		obsoleta
+OObjectPosition	número (px) o string | bottom | center | left | right | top | string		obsoleta
+OTabSize	número (px) o string | number | string		obsoleta
+OTextOverflow	clip | ellipsis | string		obsoleta
+OTransform	none | string		obsoleta
+OTransformOrigin	número (px) o string | bottom | center | left | right | top | string		obsoleta
+OTransition	EasingFunction | TTime | all | allow-discrete | none | normal | string		obsoleta
+OTransitionDelay	TTime | string		obsoleta
+OTransitionDuration	TTime | string		obsoleta
+OTransitionProperty	all | none | string		obsoleta
+OTransitionTimingFunction	CubicBezierEasingFunction | StepEasingFunction | linear | string		obsoleta
+WebkitBoxAlign	baseline | center | end | start | stretch		obsoleta
+WebkitBoxDirection	inherit | normal | reverse		obsoleta
+WebkitBoxFlex	number | string		obsoleta
+WebkitBoxFlexGroup	number | string		obsoleta
+WebkitBoxLines	multiple | single		obsoleta
+WebkitBoxOrdinalGroup	number | string		obsoleta
+WebkitBoxOrient	block-axis | horizontal | inherit | inline-axis | vertical		obsoleta
+WebkitBoxPack	center | end | justify | start		obsoleta
+accentColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto		css
+alignContent	space-around | space-between | space-evenly | stretch | center | end | flex-end | flex-start | start | baseline | normal | string		css
+alignItems	center | end | flex-end | flex-start | self-end | self-start | start | anchor-center | baseline | normal | stretch | string		css
+alignSelf	center | end | flex-end | flex-start | self-end | self-start | start | anchor-center | auto | baseline | normal | stretch | string		css
+alignTracks	space-around | space-between | space-evenly | stretch | center | end | flex-end | flex-start | start | baseline | normal | string		css
+alignmentBaseline	alphabetic | baseline | central | ideographic | mathematical | middle | text-after-edge | text-before-edge		css
+all			css
+anchorName	none | string		css
+anchorScope	all | none | string		css
+animation	EasingFunction | SingleAnimationDirection | SingleAnimationFillMode | SingleAnimationTimeline | TTime | auto | infinite | none | paused | running | string | number		css
+animationComposition	accumulate | add | replace | string		css
+animationDelay	TTime | string		css
+animationDirection	alternate | alternate-reverse | normal | reverse | string		css
+animationDuration	TTime | auto | string		css
+animationFillMode	backwards | both | forwards | none | string		css
+animationIterationCount	infinite | string | number		css
+animationName	none | string		css
+animationPlayState	paused | running | string		css
+animationRange	contain | cover | entry | entry-crossing | exit | exit-crossing | número (px) o string | normal | string		css
+animationRangeEnd	contain | cover | entry | entry-crossing | exit | exit-crossing | número (px) o string | normal | string		css
+animationRangeStart	contain | cover | entry | entry-crossing | exit | exit-crossing | número (px) o string | normal | string		css
+animationTimeline	auto | none | string		css
+animationTimingFunction	CubicBezierEasingFunction | StepEasingFunction | linear | string		css
+appearance	button | checkbox | listbox | menulist | meter | progress-bar | radio | searchfield | textarea | auto | menulist-button | none | textfield		css
+aspectRatio	auto | string | number		css
+backdropFilter	none | string		css
+backfaceVisibility	hidden | visible		css
+background	BgPosition | RepeatStyle | Attachment | VisualBox | none | string | Color		css
+backgroundAttachment	fixed | local | scroll | string		css
+backgroundBlendMode	color | color-burn | color-dodge | darken | difference | exclusion | hard-light | hue | lighten | luminosity | multiply | normal | overlay | saturation | screen | soft-light | string		css
+backgroundClip	VisualBox | border-area | text | string		css
+backgroundColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+backgroundImage	none | string		css
+backgroundOrigin	border-box | content-box | padding-box | string		css
+backgroundPosition	número (px) o string | bottom | center | left | right | top | string		css
+backgroundPositionX	número (px) o string | center | left | right | x-end | x-start | string		css
+backgroundPositionY	número (px) o string | bottom | center | top | y-end | y-start | string		css
+backgroundRepeat	no-repeat | repeat | repeat-x | repeat-y | round | space | string		css
+backgroundSize	número (px) o string | auto | contain | cover | string		css
+baselineShift	número (px) o string | baseline | sub | super | string		css
+bgcolor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	atajo de backgroundColor; color del tema ('primary.main', 'text.secondary'…)	mui
+blockSize	número (px) o string | auto | fit-content | max-content | min-content | string		css
+border	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	theme.borders	css
+borderBlock	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderBlockColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderBlockEnd	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderBlockEndColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderBlockEndStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderBlockEndWidth	número (px) o string | medium | thick | thin		css
+borderBlockStart	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderBlockStartColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderBlockStartStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderBlockStartWidth	número (px) o string | medium | thick | thin		css
+borderBlockStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | string		css
+borderBlockWidth	número (px) o string | medium | thick | thin | string		css
+borderBottom	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	theme.borders	css
+borderBottomColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+borderBottomLeftRadius	número (px) o string | string		css
+borderBottomRightRadius	número (px) o string | string		css
+borderBottomStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderBottomWidth	número (px) o string | medium | thick | thin		css
+borderCollapse	collapse | separate		css
+borderColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+borderEndEndRadius	número (px) o string | string		css
+borderEndStartRadius	número (px) o string | string		css
+borderImage	none | repeat | round | space | stretch | string | number		css
+borderImageOutset	número (px) o string | string | number		css
+borderImageRepeat	repeat | round | space | stretch | string		css
+borderImageSlice	string | number		css
+borderImageSource	none | string		css
+borderImageWidth	número (px) o string | auto | string | number		css
+borderInline	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderInlineColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderInlineEnd	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderInlineEndColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderInlineEndStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderInlineEndWidth	número (px) o string | medium | thick | thin		css
+borderInlineStart	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderInlineStartColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+borderInlineStartStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderInlineStartWidth	número (px) o string | medium | thick | thin		css
+borderInlineStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | string		css
+borderInlineWidth	número (px) o string | medium | thick | thin | string		css
+borderLeft	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	theme.borders	css
+borderLeftColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+borderLeftStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderLeftWidth	número (px) o string | medium | thick | thin		css
+borderRadius	número (px) o string | string	multiplica theme.shape.borderRadius	css
+borderRight	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	theme.borders	css
+borderRightColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+borderRightStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderRightWidth	número (px) o string | medium | thick | thin		css
+borderSpacing	número (px) o string | string		css
+borderStartEndRadius	número (px) o string | string		css
+borderStartStartRadius	número (px) o string | string		css
+borderStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | string		css
+borderTop	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	theme.borders	css
+borderTopColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+borderTopLeftRadius	número (px) o string | string		css
+borderTopRightRadius	número (px) o string | string		css
+borderTopStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid		css
+borderTopWidth	número (px) o string | medium | thick | thin		css
+borderWidth	número (px) o string | medium | thick | thin | string		css
+bottom	número (px) o string | auto | string		css
+boxAlign	baseline | center | end | start | stretch		obsoleta
+boxDecorationBreak	clone | slice		css
+boxDirection	inherit | normal | reverse		obsoleta
+boxFlex	number | string		obsoleta
+boxFlexGroup	number | string		obsoleta
+boxLines	multiple | single		obsoleta
+boxOrdinalGroup	number | string		obsoleta
+boxOrient	block-axis | horizontal | inherit | inline-axis | vertical		obsoleta
+boxPack	center | end | justify | start		obsoleta
+boxShadow	none | string	índice de theme.shadows (0–24)	css
+boxSizing	border-box | content-box		css
+breakAfter	all | always | auto | avoid | avoid-column | avoid-page | avoid-region | column | left | page | recto | region | right | verso		css
+breakBefore	all | always | auto | avoid | avoid-column | avoid-page | avoid-region | column | left | page | recto | region | right | verso		css
+breakInside	auto | avoid | avoid-column | avoid-page | avoid-region		css
+captionSide	bottom | top		css
+caret	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto | bar | block | underscore		css
+caretColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto		css
+caretShape	auto | bar | block | underscore		css
+clear	both | inline-end | inline-start | left | none | right		css
+clip	auto | string		css
+clipPath	VisualBox | fill-box | margin-box | stroke-box | view-box | none | string		css
+clipRule	evenodd | nonzero		css
+color	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string	color del tema ('primary.main', 'text.secondary'…)	css
+colorAdjust	economy | exact		css
+colorInterpolation	auto | linearRGB | sRGB		css
+colorInterpolationFilters	auto | linearRGB | sRGB		css
+colorRendering	auto | optimizeQuality | optimizeSpeed		css
+colorScheme	dark | light | normal | string		css
+columnCount	auto | number | string		css
+columnFill	auto | balance		css
+columnGap	número (px) o string | normal | string		css
+columnRule	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+columnRuleColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+columnRuleStyle	dashed | dotted | double | groove | hidden | inset | none | outset | ridge | solid | string		css
+columnRuleWidth	número (px) o string | medium | thick | thin | string		css
+columnSpan	all | none		css
+columnWidth	número (px) o string | auto		css
+columns	número (px) o string | auto | string | number		css
+contain	content | inline-size | layout | none | paint | size | strict | style | string		css
+containIntrinsicBlockSize	número (px) o string | none | string		css
+containIntrinsicHeight	número (px) o string | none | string		css
+containIntrinsicInlineSize	número (px) o string | none | string		css
+containIntrinsicSize	número (px) o string | none | string		css
+containIntrinsicWidth	número (px) o string | none | string		css
+container	none | string		css
+containerName	none | string		css
+containerType	inline-size | normal | scroll-state | size | string		css
+content	close-quote | no-close-quote | no-open-quote | open-quote | none | normal | string		css
+contentVisibility	auto | hidden | visible		css
+counterIncrement	none | string		css
+counterReset	none | string		css
+counterSet	none | string		css
+cursor	alias | all-scroll | auto | cell | col-resize | context-menu | copy | crosshair | default | e-resize | ew-resize | grab | grabbing | help | move | n-resize | ne-resize | nesw-resize | no-drop | none | not-allowed | ns-resize | nw-resize | nwse-resize | pointer | progress | row-resize | s-resize | se-resize | sw-resize | text | vertical-text | w-resize | wait | zoom-in | zoom-out | string		css
+cx	número (px) o string | string		css
+cy	número (px) o string | string		css
+d	none | string		css
+direction	ltr | rtl		css
+display	block | inline | run-in | flex | flow | flow-root | grid | ruby | table | ruby-base | ruby-base-container | ruby-text | ruby-text-container | table-caption | table-cell | table-column | table-column-group | table-footer-group | table-header-group | table-row | table-row-group | inline-block | inline-flex | inline-grid | inline-list-item | inline-table | contents | list-item | none | string		css
+displayPrint	número o string		mui
+dominantBaseline	alphabetic | auto | central | hanging | ideographic | mathematical | middle | text-bottom | text-top		css
+emptyCells	hide | show		css
+fieldSizing	content | fixed		css
+fill	Color | context-fill | context-stroke | none | string		css
+fillOpacity	string | number		css
+fillRule	evenodd | nonzero		css
+filter	none | string		css
+flex	número (px) o string | auto | content | fit-content | max-content | min-content | none | string | number		css
+flexBasis	número (px) o string | auto | content | fit-content | max-content | min-content | string		css
+flexDirection	column | column-reverse | row | row-reverse		css
+flexFlow	column | column-reverse | nowrap | row | row-reverse | wrap | wrap-reverse | string		css
+flexGrow	number | string		css
+flexShrink	number | string		css
+flexWrap	nowrap | wrap | wrap-reverse		css
+float	inline-end | inline-start | left | none | right		css
+floodColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+floodOpacity	string | number		css
+font	caption | icon | menu | message-box | small-caption | status-bar | string		css
+fontFamily	GenericComplete | GenericIncomplete | emoji | fangsong | string	también una clave de theme.typography (p. ej. 'fontFamilyBold')	css
+fontFeatureSettings	normal | string		css
+fontKerning	auto | none | normal		css
+fontLanguageOverride	normal | string		css
+fontOpticalSizing	auto | none		css
+fontPalette	dark | light | normal | string		css
+fontSize	large | medium | small | x-large | x-small | xx-large | xx-small | xxx-large | número (px) o string | larger | math | smaller | string	también una clave de theme.typography (p. ej. 'fontSizeBold')	css
+fontSizeAdjust	from-font | none | string | number		css
+fontSmooth	large | medium | small | x-large | x-small | xx-large | xx-small | xxx-large | número (px) o string | always | auto | never		css
+fontStretch	condensed | expanded | extra-condensed | extra-expanded | normal | semi-condensed | semi-expanded | ultra-condensed | ultra-expanded | string		css
+fontStyle	italic | normal | oblique | string	también una clave de theme.typography (p. ej. 'fontStyleBold')	css
+fontSynthesis	none | position | small-caps | style | weight | string		css
+fontSynthesisPosition	auto | none		css
+fontSynthesisSmallCaps	auto | none		css
+fontSynthesisStyle	auto | none		css
+fontSynthesisWeight	auto | none		css
+fontVariant	jis04 | jis78 | jis83 | jis90 | simplified | traditional | all-petite-caps | all-small-caps | common-ligatures | contextual | diagonal-fractions | discretionary-ligatures | full-width | historical-forms | historical-ligatures | lining-nums | no-common-ligatures | no-contextual | no-discretionary-ligatures | no-historical-ligatures | none | normal | oldstyle-nums | ordinal | petite-caps | proportional-nums | proportional-width | ruby | slashed-zero | small-caps | stacked-fractions | tabular-nums | titling-caps | unicase | string		css
+fontVariantAlternates	historical-forms | normal | string		css
+fontVariantCaps	all-petite-caps | all-small-caps | normal | petite-caps | small-caps | titling-caps | unicase		css
+fontVariantEastAsian	jis04 | jis78 | jis83 | jis90 | simplified | traditional | full-width | normal | proportional-width | ruby | string		css
+fontVariantEmoji	emoji | normal | text | unicode		css
+fontVariantLigatures	common-ligatures | contextual | discretionary-ligatures | historical-ligatures | no-common-ligatures | no-contextual | no-discretionary-ligatures | no-historical-ligatures | none | normal | string		css
+fontVariantNumeric	diagonal-fractions | lining-nums | normal | oldstyle-nums | ordinal | proportional-nums | slashed-zero | stacked-fractions | tabular-nums | string		css
+fontVariantPosition	normal | sub | super		css
+fontVariationSettings	normal | string		css
+fontWeight	bold | normal | number | string | bolder | lighter	también una clave de theme.typography (p. ej. 'fontWeightBold')	css
+fontWidth	condensed | expanded | extra-condensed | extra-expanded | normal | semi-condensed | semi-expanded | ultra-condensed | ultra-expanded | string		css
+forcedColorAdjust	auto | none | preserve-parent-color		css
+gap	número (px) o string | normal | string		css
+glyphOrientationVertical	auto | string | number		css
+grid	none | string		css
+gridArea	auto | string | number		css
+gridAutoColumns	número (px) o string | auto | max-content | min-content | string		css
+gridAutoFlow	column | dense | row | string		css
+gridAutoRows	número (px) o string | auto | max-content | min-content | string		css
+gridColumn	auto | string | number		css
+gridColumnEnd	auto | string | number		css
+gridColumnGap	número (px) o string | string		obsoleta
+gridColumnStart	auto | string | number		css
+gridGap	número (px) o string | string		obsoleta
+gridRow	auto | string | number		css
+gridRowEnd	auto | string | number		css
+gridRowGap	número (px) o string | string		obsoleta
+gridRowStart	auto | string | number		css
+gridTemplate	none | string		css
+gridTemplateAreas	none | string		css
+gridTemplateColumns	número (px) o string | auto | max-content | min-content | string | none | subgrid		css
+gridTemplateRows	número (px) o string | auto | max-content | min-content | string | none | subgrid		css
+hangingPunctuation	allow-end | first | force-end | last | none | string		css
+height	número (px) o string | auto | fit-content | max-content | min-content | string	0–1 = porcentaje, >1 = px	css
+hyphenateCharacter	auto | string		css
+hyphenateLimitChars	auto | string | number		css
+hyphens	auto | manual | none		css
+imageOrientation	flip | from-image | string		css
+imageRendering	auto | crisp-edges | pixelated | smooth		css
+imageResolution	from-image | string		css
+imeMode	active | auto | disabled | inactive | normal		obsoleta
+initialLetter	normal | string | number		css
+initialLetterAlign	alphabetic | auto | hanging | ideographic		css
+inlineSize	número (px) o string | auto | fit-content | max-content | min-content | string		css
+inset	número (px) o string | auto | string		css
+insetArea	block-end | block-start | bottom | center | end | inline-end | inline-start | left | right | self-block-end | self-block-start | self-end | self-inline-end | self-inline-start | self-start | span-all | span-block-end | span-block-start | span-bottom | span-end | span-inline-end | span-inline-start | span-left | span-right | span-self-block-end | span-self-block-start | span-self-end | span-self-inline-end | span-self-inline-start | span-self-start | span-start | span-top | span-x-end | span-x-self-end | span-x-self-start | span-x-start | span-y-end | span-y-self-end | span-y-self-start | span-y-start | start | top | x-end | x-self-end | x-self-start | x-start | y-end | y-self-end | y-self-start | y-start | string | none		obsoleta
+insetBlock	número (px) o string | auto | string		css
+insetBlockEnd	número (px) o string | auto | string		css
+insetBlockStart	número (px) o string | auto | string		css
+insetInline	número (px) o string | auto | string		css
+insetInlineEnd	número (px) o string | auto | string		css
+insetInlineStart	número (px) o string | auto | string		css
+interpolateSize	allow-keywords | numeric-only		css
+isolation	auto | isolate		css
+justifyContent	space-around | space-between | space-evenly | stretch | center | end | flex-end | flex-start | start | left | normal | right | string		css
+justifyItems	center | end | flex-end | flex-start | self-end | self-start | start | anchor-center | baseline | left | legacy | normal | right | stretch | string		css
+justifySelf	center | end | flex-end | flex-start | self-end | self-start | start | anchor-center | auto | baseline | left | normal | right | stretch | string		css
+justifyTracks	space-around | space-between | space-evenly | stretch | center | end | flex-end | flex-start | start | left | normal | right | string		css
+left	número (px) o string | auto | string		css
+letterSpacing	número (px) o string | normal		css
+lightingColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+lineBreak	anywhere | auto | loose | normal | strict		css
+lineClamp	none | number | string		css
+lineHeight	número (px) o string | normal | string | number		css
+lineHeightStep	número (px) o string		css
+listStyle	inside | none | outside | string		css
+listStyleImage	none | string		css
+listStylePosition	inside | outside		css
+listStyleType	none | string		css
+m	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+margin	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginBlock	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginBlockEnd	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginBlockStart	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginBottom	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginInline	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginInlineEnd	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginInlineStart	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginLeft	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginRight	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginTop	número (px) o string | auto | string	en sx usa theme.spacing (1 = 8px)	css
+marginTrim	all | in-flow | none		css
+marginX	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+marginY	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+marker	none | string		css
+markerEnd	none | string		css
+markerMid	none | string		css
+markerStart	none | string		css
+mask	Position | RepeatStyle | GeometryBox | CompositingOperator | MaskingMode | no-clip | none | string		css
+maskBorder	alpha | luminance | none | repeat | round | space | stretch | string | number		css
+maskBorderMode	alpha | luminance		css
+maskBorderOutset	número (px) o string | string | number		css
+maskBorderRepeat	repeat | round | space | stretch | string		css
+maskBorderSlice	string | number		css
+maskBorderSource	none | string		css
+maskBorderWidth	número (px) o string | auto | string | number		css
+maskClip	VisualBox | fill-box | stroke-box | no-clip | view-box | string		css
+maskComposite	add | exclude | intersect | subtract | string		css
+maskImage	none | string		css
+maskMode	alpha | luminance | match-source | string		css
+maskOrigin	VisualBox | fill-box | stroke-box | view-box | string		css
+maskPosition	número (px) o string | bottom | center | left | right | top | string		css
+maskRepeat	no-repeat | repeat | repeat-x | repeat-y | round | space | string		css
+maskSize	número (px) o string | auto | contain | cover | string		css
+maskType	alpha | luminance		css
+masonryAutoFlow	definite-first | next | ordered | pack | string		css
+mathDepth	auto-add | string | number		css
+mathShift	compact | normal		css
+mathStyle	compact | normal		css
+maxBlockSize	número (px) o string | fit-content | max-content | min-content | none | string		css
+maxHeight	número (px) o string | fit-content | intrinsic | max-content | min-content | none | string	0–1 = porcentaje, >1 = px	css
+maxInlineSize	número (px) o string | fit-content | max-content | min-content | none | string		css
+maxLines	none | number | string		css
+maxWidth	número (px) o string | fit-content | intrinsic | max-content | min-content | none | string		css
+mb	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+minBlockSize	número (px) o string | auto | fit-content | max-content | min-content | string		css
+minHeight	número (px) o string | auto | fit-content | intrinsic | max-content | min-content | string	0–1 = porcentaje, >1 = px	css
+minInlineSize	número (px) o string | auto | fit-content | max-content | min-content | string		css
+minWidth	número (px) o string | auto | fit-content | intrinsic | max-content | min-content | min-intrinsic | string	0–1 = porcentaje, >1 = px	css
+mixBlendMode	color | color-burn | color-dodge | darken | difference | exclusion | hard-light | hue | lighten | luminosity | multiply | normal | overlay | saturation | screen | soft-light | plus-darker | plus-lighter		css
+ml	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+motion	número (px) o string | bottom | center | left | right | top | string | VisualBox | fill-box | stroke-box | auto | none | normal | view-box		css
+motionDistance	número (px) o string | string		css
+motionPath	VisualBox | fill-box | stroke-box | none | view-box | string		css
+motionRotation	auto | reverse | string		css
+mr	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+msImeMode	active | auto | disabled | inactive | normal		obsoleta
+mt	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+mx	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+my	número o string	atajo de margin; usa theme.spacing (1 = 8px)	mui
+objectFit	contain | cover | fill | none | scale-down		css
+objectPosition	número (px) o string | bottom | center | left | right | top | string		css
+objectViewBox	none | string		css
+offset	número (px) o string | bottom | center | left | right | top | string | VisualBox | fill-box | stroke-box | auto | none | normal | view-box		css
+offsetAnchor	número (px) o string | bottom | center | left | right | top | string | auto		css
+offsetBlock	número (px) o string | auto | string		obsoleta
+offsetBlockEnd	número (px) o string | auto | string		obsoleta
+offsetBlockStart	número (px) o string | auto | string		obsoleta
+offsetDistance	número (px) o string | string		css
+offsetInline	número (px) o string | auto | string		obsoleta
+offsetInlineEnd	número (px) o string | auto | string		obsoleta
+offsetInlineStart	número (px) o string | auto | string		obsoleta
+offsetPath	VisualBox | fill-box | stroke-box | none | view-box | string		css
+offsetPosition	número (px) o string | bottom | center | left | right | top | string | auto | normal		css
+offsetRotate	auto | reverse | string		css
+offsetRotation	auto | reverse | string		css
+opacity	string | number		css
+order	number | string		css
+orphans	number | string		css
+outline	número (px) o string | medium | thick | thin | dashed | dotted | double | groove | inset | none | outset | ridge | solid | ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto	theme.borders	css
+outlineColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | auto	color del tema ('primary.main', 'text.secondary'…)	css
+outlineOffset	número (px) o string		css
+outlineStyle	dashed | dotted | double | groove | inset | none | outset | ridge | solid | auto		css
+outlineWidth	número (px) o string | medium | thick | thin		css
+overflow	auto | clip | hidden | overlay | scroll | visible | string		css
+overflowAnchor	auto | none		css
+overflowBlock	auto | clip | hidden | scroll | visible		css
+overflowClipBox	content-box | padding-box		css
+overflowClipMargin	border-box | content-box | padding-box | número (px) o string | string		css
+overflowInline	auto | clip | hidden | scroll | visible		css
+overflowWrap	anywhere | break-word | normal		css
+overflowX	auto | clip | hidden | overlay | scroll | visible		css
+overflowY	auto | clip | hidden | overlay | scroll | visible		css
+overlay	auto | none		css
+overscrollBehavior	auto | contain | none | string		css
+overscrollBehaviorBlock	auto | contain | none		css
+overscrollBehaviorInline	auto | contain | none		css
+overscrollBehaviorX	auto | contain | none		css
+overscrollBehaviorY	auto | contain | none		css
+p	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+padding	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingBlock	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingBlockEnd	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingBlockStart	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingBottom	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingInline	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingInlineEnd	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingInlineStart	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingLeft	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingRight	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingTop	número (px) o string | string	en sx usa theme.spacing (1 = 8px)	css
+paddingX	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+paddingY	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+page	auto | string		css
+pageBreakAfter	always | auto | avoid | left | recto | right | verso		obsoleta
+pageBreakBefore	always | auto | avoid | left | recto | right | verso		obsoleta
+pageBreakInside	auto | avoid		obsoleta
+paintOrder	fill | markers | normal | stroke | string		css
+pb	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+perspective	número (px) o string | none		css
+perspectiveOrigin	número (px) o string | bottom | center | left | right | top | string		css
+pl	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+placeContent	space-around | space-between | space-evenly | stretch | center | end | flex-end | flex-start | start | baseline | normal | string		css
+placeItems	center | end | flex-end | flex-start | self-end | self-start | start | anchor-center | baseline | normal | stretch | string		css
+placeSelf	center | end | flex-end | flex-start | self-end | self-start | start | anchor-center | auto | baseline | normal | stretch | string		css
+pointerEvents	all | auto | fill | inherit | none | painted | stroke | visible | visibleFill | visiblePainted | visibleStroke		css
+position	absolute | fixed | relative | static | sticky		css
+positionAnchor	auto | string		css
+positionArea	block-end | block-start | bottom | center | end | inline-end | inline-start | left | right | self-block-end | self-block-start | self-end | self-inline-end | self-inline-start | self-start | span-all | span-block-end | span-block-start | span-bottom | span-end | span-inline-end | span-inline-start | span-left | span-right | span-self-block-end | span-self-block-start | span-self-end | span-self-inline-end | span-self-inline-start | span-self-start | span-start | span-top | span-x-end | span-x-self-end | span-x-self-start | span-x-start | span-y-end | span-y-self-end | span-y-self-start | span-y-start | start | top | x-end | x-self-end | x-self-start | x-start | y-end | y-self-end | y-self-start | y-start | string | none		css
+positionTry	flip-block | flip-inline | flip-start | string | block-end | block-start | bottom | center | end | inline-end | inline-start | left | right | self-block-end | self-block-start | self-end | self-inline-end | self-inline-start | self-start | span-all | span-block-end | span-block-start | span-bottom | span-end | span-inline-end | span-inline-start | span-left | span-right | span-self-block-end | span-self-block-start | span-self-end | span-self-inline-end | span-self-inline-start | span-self-start | span-start | span-top | span-x-end | span-x-self-end | span-x-self-start | span-x-start | span-y-end | span-y-self-end | span-y-self-start | span-y-start | start | top | x-end | x-self-end | x-self-start | x-start | y-end | y-self-end | y-self-start | y-start | none		css
+positionTryFallbacks	flip-block | flip-inline | flip-start | string | block-end | block-start | bottom | center | end | inline-end | inline-start | left | right | self-block-end | self-block-start | self-end | self-inline-end | self-inline-start | self-start | span-all | span-block-end | span-block-start | span-bottom | span-end | span-inline-end | span-inline-start | span-left | span-right | span-self-block-end | span-self-block-start | span-self-end | span-self-inline-end | span-self-inline-start | span-self-start | span-start | span-top | span-x-end | span-x-self-end | span-x-self-start | span-x-start | span-y-end | span-y-self-end | span-y-self-start | span-y-start | start | top | x-end | x-self-end | x-self-start | x-start | y-end | y-self-end | y-self-start | y-start | none		css
+positionTryOptions	flip-block | flip-inline | flip-start | string | block-end | block-start | bottom | center | end | inline-end | inline-start | left | right | self-block-end | self-block-start | self-end | self-inline-end | self-inline-start | self-start | span-all | span-block-end | span-block-start | span-bottom | span-end | span-inline-end | span-inline-start | span-left | span-right | span-self-block-end | span-self-block-start | span-self-end | span-self-inline-end | span-self-inline-start | span-self-start | span-start | span-top | span-x-end | span-x-self-end | span-x-self-start | span-x-start | span-y-end | span-y-self-end | span-y-self-start | span-y-start | start | top | x-end | x-self-end | x-self-start | x-start | y-end | y-self-end | y-self-start | y-start | none		obsoleta
+positionTryOrder	most-block-size | most-height | most-inline-size | most-width | normal		css
+positionVisibility	always | anchors-valid | anchors-visible | no-overflow | string		css
+pr	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+printColorAdjust	economy | exact		css
+pt	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+px	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+py	número o string	atajo de padding; usa theme.spacing (1 = 8px)	mui
+quotes	auto | none | string		css
+r	número (px) o string | string		css
+resize	block | both | horizontal | inline | none | vertical		css
+right	número (px) o string | auto | string		css
+rotate	none | string		css
+rowGap	número (px) o string | normal | string		css
+rubyAlign	center | space-around | space-between | start		css
+rubyMerge	auto | collapse | separate		css
+rubyOverhang	auto | none		css
+rubyPosition	alternate | inter-character | over | under | string		css
+rx	número (px) o string | string		css
+ry	número (px) o string | string		css
+scale	none | string | number		css
+scrollBehavior	auto | smooth		css
+scrollInitialTarget	nearest | none		css
+scrollMargin	número (px) o string | string		css
+scrollMarginBlock	número (px) o string | string		css
+scrollMarginBlockEnd	número (px) o string		css
+scrollMarginBlockStart	número (px) o string		css
+scrollMarginBottom	número (px) o string		css
+scrollMarginInline	número (px) o string | string		css
+scrollMarginInlineEnd	número (px) o string		css
+scrollMarginInlineStart	número (px) o string		css
+scrollMarginLeft	número (px) o string		css
+scrollMarginRight	número (px) o string		css
+scrollMarginTop	número (px) o string		css
+scrollPadding	número (px) o string | auto | string		css
+scrollPaddingBlock	número (px) o string | auto | string		css
+scrollPaddingBlockEnd	número (px) o string | auto | string		css
+scrollPaddingBlockStart	número (px) o string | auto | string		css
+scrollPaddingBottom	número (px) o string | auto | string		css
+scrollPaddingInline	número (px) o string | auto | string		css
+scrollPaddingInlineEnd	número (px) o string | auto | string		css
+scrollPaddingInlineStart	número (px) o string | auto | string		css
+scrollPaddingLeft	número (px) o string | auto | string		css
+scrollPaddingRight	número (px) o string | auto | string		css
+scrollPaddingTop	número (px) o string | auto | string		css
+scrollSnapAlign	center | end | none | start | string		css
+scrollSnapCoordinate	número (px) o string | bottom | center | left | right | top | string | none		obsoleta
+scrollSnapDestination	número (px) o string | bottom | center | left | right | top | string		obsoleta
+scrollSnapMargin	número (px) o string | string		css
+scrollSnapMarginBottom	número (px) o string		css
+scrollSnapMarginLeft	número (px) o string		css
+scrollSnapMarginRight	número (px) o string		css
+scrollSnapMarginTop	número (px) o string		css
+scrollSnapPointsX	none | string		obsoleta
+scrollSnapPointsY	none | string		obsoleta
+scrollSnapStop	always | normal		css
+scrollSnapType	block | both | inline | none | x | y | string		css
+scrollSnapTypeX	mandatory | none | proximity		obsoleta
+scrollSnapTypeY	mandatory | none | proximity		obsoleta
+scrollTimeline	none | string		css
+scrollTimelineAxis	block | inline | x | y | string		css
+scrollTimelineName	none | string		css
+scrollbarColor	auto | string		css
+scrollbarGutter	auto | stable | string		css
+scrollbarWidth	auto | none | thin		css
+shapeImageThreshold	string | number		css
+shapeMargin	número (px) o string | string		css
+shapeOutside	border-box | content-box | padding-box | margin-box | none | string		css
+shapeRendering	auto | crispEdges | geometricPrecision | optimizeSpeed		css
+speakAs	digits | literal-punctuation | no-punctuation | normal | spell-out | string		css
+stopColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+stopOpacity	string | number		css
+stroke	Color | context-fill | context-stroke | none | string		css
+strokeColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+strokeDasharray	número (px) o string | string | number | none		css
+strokeDashoffset	número (px) o string | string | number		css
+strokeLinecap	butt | round | square		css
+strokeLinejoin	arcs | bevel | miter | miter-clip | round		css
+strokeMiterlimit	number | string		css
+strokeOpacity	string | number		css
+strokeWidth	número (px) o string | string | number		css
+tabSize	número (px) o string | number | string		css
+tableLayout	auto | fixed		css
+textAlign	center | end | justify | left | match-parent | right | start		css
+textAlignLast	auto | center | end | justify | left | right | start		css
+textAnchor	end | middle | start		css
+textAutospace	ideograph-alpha | ideograph-numeric | insert | no-autospace | punctuation | replace | string | auto | normal		css
+textBox	cap | ex | ideographic | ideographic-ink | text | string | auto | none | normal | trim-both | trim-end | trim-start		css
+textBoxEdge	cap | ex | ideographic | ideographic-ink | text | string | auto		css
+textBoxTrim	none | trim-both | trim-end | trim-start		css
+textCombineUpright	all | digits | none | string		css
+textDecoration	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | número (px) o string | auto | blink | dashed | dotted | double | from-font | grammar-error | line-through | none | overline | solid | spelling-error | underline | wavy		css
+textDecorationColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+textDecorationLine	blink | grammar-error | line-through | none | overline | spelling-error | underline | string		css
+textDecorationSkip	box-decoration | edges | leading-spaces | none | objects | spaces | trailing-spaces | string		css
+textDecorationSkipInk	all | auto | none		css
+textDecorationStyle	dashed | dotted | double | solid | wavy		css
+textDecorationThickness	número (px) o string | auto | from-font | string		css
+textEmphasis	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string | circle | dot | double-circle | filled | none | open | sesame | triangle		css
+textEmphasisColor	ColorBase | SystemColor | DeprecatedSystemColor | currentColor | string		css
+textEmphasisPosition	auto | over | under | string		css
+textEmphasisStyle	circle | dot | double-circle | filled | none | open | sesame | triangle | string		css
+textIndent	número (px) o string | string		css
+textJustify	auto | distribute | inter-character | inter-word | none		css
+textOrientation	mixed | sideways | sideways-right | upright		css
+textOverflow	clip | ellipsis | string		css
+textRendering	auto | geometricPrecision | optimizeLegibility | optimizeSpeed		css
+textShadow	none | string		css
+textSizeAdjust	auto | none | string		css
+textSpacingTrim	normal | space-all | space-first | trim-start		css
+textTransform	capitalize | full-size-kana | full-width | lowercase | math-auto | none | uppercase | string		css
+textUnderlineOffset	número (px) o string | auto | string		css
+textUnderlinePosition	auto | from-font | left | right | under | string		css
+textWrap	auto | balance | nowrap | pretty | stable | wrap | string		css
+textWrapMode	nowrap | wrap		css
+textWrapStyle	auto | balance | pretty | stable		css
+timelineScope	none | string		css
+top	número (px) o string | auto | string		css
+touchAction	auto | manipulation | none | pan-down | pan-left | pan-right | pan-up | pan-x | pan-y | pinch-zoom | string		css
+transform	none | string		css
+transformBox	border-box | content-box | fill-box | stroke-box | view-box		css
+transformOrigin	número (px) o string | bottom | center | left | right | top | string		css
+transformStyle	flat | preserve-3d		css
+transition	EasingFunction | TTime | all | allow-discrete | none | normal | string		css
+transitionBehavior	allow-discrete | normal | string		css
+transitionDelay	TTime | string		css
+transitionDuration	TTime | string		css
+transitionProperty	all | none | string		css
+transitionTimingFunction	CubicBezierEasingFunction | StepEasingFunction | linear | string		css
+translate	número (px) o string | none | string		css
+typography	número o string	variante del tema ('h4', 'body1'…)	mui
+unicodeBidi	bidi-override | embed | isolate | isolate-override | normal | plaintext		css
+userSelect	all | auto | none | text		css
+vectorEffect	fixed-position | non-rotation | non-scaling-size | non-scaling-stroke | none		css
+verticalAlign	número (px) o string | baseline | bottom | middle | sub | super | text-bottom | text-top | top | string		css
+viewTimeline	none | string		css
+viewTimelineAxis	block | inline | x | y | string		css
+viewTimelineInset	número (px) o string | auto | string		css
+viewTimelineName	none | string		css
+viewTransitionClass	none | string		css
+viewTransitionName	match-element | none | string		css
+visibility	collapse | hidden | visible		css
+whiteSpace	break-spaces | collapse | normal | nowrap | pre | pre-line | pre-wrap | preserve | preserve-breaks | preserve-spaces | wrap | string		css
+whiteSpaceCollapse	break-spaces | collapse | preserve | preserve-breaks | preserve-spaces		css
+widows	number | string		css
+width	número (px) o string | auto | fit-content | intrinsic | max-content | min-content | min-intrinsic | string	0–1 = porcentaje, >1 = px	css
+willChange	contents | scroll-position | string | auto		css
+wordBreak	auto-phrase | break-all | break-word | keep-all | normal		css
+wordSpacing	número (px) o string | normal		css
+wordWrap	break-word | normal		css
+writingMode	horizontal-tb | sideways-lr | sideways-rl | vertical-lr | vertical-rl		css
+x	número (px) o string | string		css
+y	número (px) o string | string		css
+zIndex	auto | number | string	clave de theme.zIndex ('modal', 'tooltip'…)	css
+zoom	normal | reset | string | number		css

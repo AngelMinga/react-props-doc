@@ -18,6 +18,7 @@
           <li>Aviso de props que el componente no acepta (<code>&lt;Button text="…"&gt;</code>) con correcciones.</li>
           <li>Extraer texto fijo del JSX a las traducciones (Alt+Enter).</li>
           <li>Redux: autocompletado, hover (estado inicial y acciones) y Ctrl+clic en <code>useSelector(state =&gt; state.x)</code>.</li>
+          <li><code>sx</code>/<code>style</code>: autocompletado de claves y valores, hover con valores y atajos de MUI, aviso de claves desconocidas.</li>
           <li>Ajustes en Settings → Tools → React Props Doc.</li>
         </ul>
     ]]></description>
@@ -31,6 +32,16 @@
         <platform.backend.documentation.psiTargetProvider
                 order="first"
                 implementation="dev.angelminga.reactpropsdoc.ReactPropsDocumentationTargetProvider"/>
+        <!-- sx={{ … }} y style={{ … }}: claves, valores y atajos de MUI -->
+        <completion.contributor language="JavaScript" order="first"
+                                implementationClass="dev.angelminga.reactpropsdoc.SxCompletionContributor"/>
+        <platform.backend.documentation.targetProvider order="first"
+                implementation="dev.angelminga.reactpropsdoc.SxDocumentationTargetProvider"/>
+        <localInspection language="JavaScript" shortName="ReactPropsDocSxUnknownKey"
+                         displayName="Clave de sx/style desconocida"
+                         groupName="React Props Doc" enabledByDefault="true" level="WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.SxUnknownKeyInspection"/>
+
         <!-- Redux: useSelector(state => state.x) -->
         <completion.contributor language="JavaScript" order="first"
                                 implementationClass="dev.angelminga.reactpropsdoc.ReduxCompletionContributor"/>

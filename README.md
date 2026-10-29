@@ -5,7 +5,7 @@ ayuda con las traducciones de páginas (`getLanguagePage('página')`). Nació pa
 (React + Module Federation + MUI), pero funciona en cualquier proyecto React con `propTypes` o MUI.
 
 - **IDE:** IntelliJ IDEA Ultimate 2026.3 o superior (requiere los plugins JavaScript y JSON incluidos).
-- **Versión actual:** 1.9.0
+- **Versión actual:** 1.10.0
 
 ## Instalación
 
@@ -43,6 +43,15 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
   con selectores definidos aparte (`useSelector(selectCatalog)`, funciones `select*` o `*Selector`).
 - Cuando conoce las claves, el autocompletado muestra solo esas (sin la lista genérica `constructor`, `toString`…).
 
+### Estilos: `sx={{ … }}` y `style={{ … }}`
+- **Autocompletado de claves** dentro de `sx={{ │ }}`: 628 claves (propiedades CSS y atajos de MUI como `p`, `mt`,
+  `bgcolor`), con un resumen de sus valores y qué hace el atajo. En `style` solo CSS (sin atajos de MUI).
+- **Autocompletado de valores**: `position: '│'` → `absolute | fixed | relative | static | sticky`.
+- **Hover sobre una clave** (`position`, `cursor`, `p`, `bgcolor`…): valores permitidos, nota de MUI
+  (p. ej. *atajo de padding; usa theme.spacing (1 = 8px)*) y un ejemplo.
+- **Hover sobre `sx`**: qué acepta (CSS, atajos, valores del tema, responsive `{ xs, md }`, selectores `'&:hover'`).
+- Datos generados desde `csstype` y `@mui/system` con `tools/generate_sx_data.py` → `sx-properties.tsv`.
+
 ### Avisos (inspecciones) y correcciones rápidas (Alt+Enter)
 | Aviso | Corrección |
 |---|---|
@@ -53,6 +62,7 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 | Página o clave de traducción inexistente | — |
 | Clave o página que falta en otro idioma (en el código y en `en.json`/`ki.json`) | Copiarla desde el idioma base, marcada con `[ES]`, respetando la indentación del archivo. |
 | Texto `[ES] …` en `en.json`/`ki.json` | Señala lo que falta traducir. |
+| Clave de `sx`/`style` desconocida (`positon`, `bgColor`, `shadow`) o atajo de MUI en `style` (`style={{ bgcolor }}`) | Cambiar por la clave más parecida (`position`, `bgcolor`, `backgroundColor`). No revisa selectores (`'&:hover'`, `svg: {…}`), `@keyframes`, prefijos de navegador ni objetos pasados a funciones. |
 | Texto fijo en JSX (desactivado por defecto) | *Extraer a traducciones*. |
 
 ### Traducciones en el editor
@@ -110,6 +120,8 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 ./gradlew buildPlugin                # genera el .zip
 # Prueba de humo contra un proyecto real (opcional):
 ./gradlew test -PrealProject=/ruta/al/proyecto/apps -PrealMui=/ruta/a/node_modules
+# Regenerar las claves de sx al actualizar MUI o csstype:
+python3 tools/generate_sx_data.py <csstype/index.d.ts> <@mui/system/styleFunctionSx/defaultSxConfig.js>
 ```
 
 - Compila contra el IntelliJ instalado (`ideaPath` en `gradle.properties`) usando el JBR 25 del propio IDE.
@@ -119,6 +131,7 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 ## Historial
 | Versión | Cambios |
 |---|---|
+| 1.10.0 | `sx`/`style`: autocompletado de claves y valores, hover con valores y atajos de MUI, aviso de claves desconocidas. |
 | 1.9.0 | Redux: forma real deducida de los usos, variables y selectores aparte; MUI System revisado; extraer texto en componentes sin traducciones; autocompletado sin lista genérica. |
 | 1.8.1 | Traducciones: Ctrl+clic y hover en accesos (`buttons.cancel`) y desestructuraciones anidadas o de segundo nivel. |
 | 1.8.0 | Redux (`useSelector`: autocompletado, hover y Ctrl+clic); Ctrl+clic en claves de traducción; hooks con spread y resultado por partes; `Omit` en props heredadas. |
