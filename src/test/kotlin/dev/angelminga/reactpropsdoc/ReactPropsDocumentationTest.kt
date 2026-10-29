@@ -38,7 +38,7 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
         myFixture.configureByText(
             "Page.jsx",
             """
-            import { Button, TextField, Grid, Dialog, Typography, Box, Card } from '@mui/material'
+            import { Button, TextField, Grid, Dialog, Typography, Box, Card, IconButton } from '@mui/material'
             export const Page = () => <$tag />
             """.trimIndent(),
         )
@@ -52,7 +52,10 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
         assertTrue(doc, doc.contains("<code>disabled</code>: boolean — opcional (= <code>false</code>)"))
         assertTrue(doc, doc.contains("If <code>true</code>, the component is disabled."))
         assertTrue("Props debe ir antes de la ubicación", doc.indexOf("Props (") < doc.lastIndexOf("<icon src="))
-        assertFalse("No debe listar props HTML heredadas", doc.contains("<code>onClick</code>"))
+        assertFalse(
+            "La sección Props no debe listar atributos HTML",
+            doc.substringAfter("Props (").substringBefore("Heredadas de").contains("<code>onClick</code>"),
+        )
         assertFalse("La firma larga del IDE debe ocultarse", doc.contains("ExtendButtonBase"))
         assertTrue(doc, doc.contains("<b>Button</b>"))
         assertTrue("Se conserva el resto de la documentación (Demos/API)", doc.contains("Button API"))
@@ -186,12 +189,36 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
         assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>&#39;success&#39;</code> | <code>&#39;error&#39;</code> | <code>&#39;info&#39;</code>"))
     }
 
+    // ---------- Heredadas de ButtonBase + atributos HTML ----------
+
+    fun testMuiButtonInheritsButtonBaseAndHtml() {
+        val doc = muiPage("Butt<caret>on").orEmpty()
+        assertTrue(doc, doc.contains("Heredadas de ButtonBase:"))
+        assertTrue(doc, doc.contains("<code>disableRipple</code>"))
+        assertFalse("children ya es prop propia de Button", doc.substringAfter("Heredadas de ButtonBase:").substringBefore("</td>").contains("<code>children</code>"))
+        assertTrue(doc, doc.contains("Atributos HTML de &lt;button&gt;:"))
+        assertTrue(doc, doc.contains("<code>type (&quot;submit&quot; | &quot;reset&quot; | &quot;button&quot;)</code>"))
+        assertFalse("No existe la prop text", doc.contains("<code>text</code>"))
+    }
+
+    fun testMuiIconButtonInheritsButtonBase() {
+        val doc = muiPage("IconBut<caret>ton").orEmpty()
+        assertTrue(doc, doc.contains("Heredadas de ButtonBase:"))
+        assertTrue(doc, doc.contains("Atributos HTML de &lt;button&gt;:"))
+    }
+
+    fun testMuiTypographyHtmlRoot() {
+        val doc = muiPage("Typogra<caret>phy").orEmpty()
+        assertTrue(doc, doc.contains("Atributos HTML de &lt;span&gt;:"))
+    }
+
     // ---------- #4 Box ----------
 
     fun testMuiBox() {
         val doc = muiPage("B<caret>ox")
         assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>component</code>"))
         assertTrue(doc.orEmpty(), doc.orEmpty().contains("<code>sx</code>"))
+        assertTrue(doc.orEmpty(), doc.orEmpty().contains("Atributos HTML de &lt;div&gt;:"))
     }
 
     // ---------- #5 Heredadas ----------

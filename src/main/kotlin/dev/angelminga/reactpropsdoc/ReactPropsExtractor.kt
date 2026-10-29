@@ -36,7 +36,12 @@ data class ReactProp(
 )
 
 /** Props que un componente de librería hereda de otro tipo (p. ej. Card ← Paper). */
-data class InheritedProps(val source: String, val names: List<String>, val note: String? = null)
+data class InheritedProps(
+    val source: String,
+    val names: List<String>,
+    val note: String? = null,
+    val header: String = "Heredadas de $source:",
+)
 
 data class ComponentProps(val own: List<ReactProp>, val inherited: List<InheritedProps> = emptyList()) {
     fun isEmpty() = own.isEmpty() && inherited.isEmpty()
@@ -206,12 +211,55 @@ object ReactPropsExtractor {
                 )
             }
         val inherited = if (ReactPropsDocSettings.options.showInherited) {
-            inheritedProps(propsInterface, own.map { it.name }.toSet())
+            val ownNames = own.map { it.name }.toSet()
+            extendedComponentProps(component, ownNames) + inheritedProps(propsInterface, ownNames) +
+                listOfNotNull(htmlAttributes(component))
         } else {
             emptyList()
         }
         return ComponentProps(own, inherited)
     }
+
+    /**
+     * Componentes declarados como `ExtendButtonBase<ButtonTypeMap>` (Button, IconButton, Fab…):
+     * la herencia no está en `extends`, sino en el tipo de la declaración.
+     */
+    private fun extendedComponentProps(component: ReactComponent, ownNames: Set<String>): List<InheritedProps> =
+        PsiTreeUtil.findChildrenOfType(component.declaration, JSReferenceExpression::class.java)
+            .filter { it.referenceName?.matches(Regex("Extend[A-Z]\\w*")) == true && it.referenceName?.endsWith("TypeMap") == false }
+            .mapNotNull { ref ->
+                val base = ref.referenceName!!.removePrefix("Extend")
+                val file = followAliases(ref.resolve())?.containingFile ?: return@mapNotNull null
+                val names = propsInterfaceIn(file, base)?.body?.typeMembers.orEmpty()
+                    .filterIsInstance<TypeScriptPropertySignature>().mapNotNull { it.name }
+                    .filter { it !in ownNames }
+                if (names.isEmpty()) null else InheritedProps(base, names.take(MAX_INHERITED))
+            }
+
+    /** Elemento HTML raíz (`RootComponent extends React.ElementType = 'button'`) y sus atributos más útiles. */
+    private fun htmlAttributes(component: ReactComponent): InheritedProps? {
+        val root = Regex("RootComponent extends React\\.ElementType = '([a-z][a-z0-9]*)'").find(component.file.text)
+            ?.groupValues?.get(1)
+            ?: Regex("TypeMap<\\{},\\s*'([a-z][a-z0-9]*)'").find(component.declaration.text)?.groupValues?.get(1)
+            ?: return null
+        return InheritedProps(
+            source = "<$root>",
+            names = HTML_ATTRIBUTES[root] ?: COMMON_HTML_ATTRIBUTES,
+            note = "y demás atributos HTML / aria-*",
+            header = "Atributos HTML de <$root>:",
+        )
+    }
+
+    private val COMMON_HTML_ATTRIBUTES = listOf("id", "className", "style", "title", "role", "onClick", "aria-label")
+
+    private val HTML_ATTRIBUTES = mapOf(
+        "button" to listOf("type (\"submit\" | \"reset\" | \"button\")", "name", "value", "form", "onClick", "onFocus", "onBlur") +
+            COMMON_HTML_ATTRIBUTES.filter { it != "onClick" },
+        "a" to listOf("href", "target", "rel", "download") + COMMON_HTML_ATTRIBUTES,
+        "input" to listOf("type", "name", "value", "placeholder", "onChange", "maxLength", "autoComplete") + COMMON_HTML_ATTRIBUTES,
+        "form" to listOf("onSubmit", "action", "method", "noValidate") + COMMON_HTML_ATTRIBUTES,
+        "img" to listOf("src", "alt", "width", "height", "loading") + COMMON_HTML_ATTRIBUTES,
+    )
 
     private fun propsInterfaceIn(file: PsiFile, base: String): TypeScriptInterface? {
         val interfaces = PsiTreeUtil.findChildrenOfType(file, TypeScriptInterface::class.java).associateBy { it.name }

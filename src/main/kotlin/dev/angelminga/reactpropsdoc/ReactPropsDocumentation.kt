@@ -96,9 +96,9 @@ object ReactPropsDocumentation {
             props.inherited.forEach { group ->
                 val content = buildString {
                     if (group.names.isNotEmpty()) append(group.names.joinToString(", ") { "<code>${esc(it)}</code>" })
-                    group.note?.let { append(esc(it)) }
+                    group.note?.let { if (group.names.isEmpty()) append(esc(it)) else append(" <i>").append(esc(it)).append("</i>") }
                 }
-                add(section("Heredadas de ${esc(group.source)}:", content))
+                add(section(esc(group.header), content))
             }
         }.joinToString("")
 
