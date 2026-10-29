@@ -13,10 +13,12 @@ import com.intellij.lang.javascript.psi.JSExpression
 import com.intellij.lang.javascript.psi.JSFunction
 import com.intellij.lang.javascript.psi.JSObjectLiteralExpression
 import com.intellij.lang.javascript.psi.JSParameter
+import com.intellij.lang.javascript.psi.JSProperty
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.lang.javascript.psi.ecma6.TypeScriptInterface
 import com.intellij.lang.javascript.psi.ecma6.TypeScriptPropertySignature
+import com.intellij.lang.javascript.psi.ecma6.TypeScriptTypeAlias
 import com.intellij.lang.javascript.psi.ecmal4.JSClass
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
@@ -30,8 +32,17 @@ data class ReactProp(
     val required: Boolean = false,
     val defaultValue: String? = null,
     val description: String? = null,
+    val warning: String? = null,
 )
 
+/** Props que un componente de librería hereda de otro tipo (p. ej. Card ← Paper). */
+data class InheritedProps(val source: String, val names: List<String>, val note: String? = null)
+
+data class ComponentProps(val own: List<ReactProp>, val inherited: List<InheritedProps> = emptyList()) {
+    fun isEmpty() = own.isEmpty() && inherited.isEmpty()
+}
+
+/** Declaración resuelta (componente o hook) con su función, si se pudo determinar. */
 data class ReactComponent(
     val name: String,
     val declaration: PsiElement,
@@ -42,26 +53,36 @@ data class ReactComponent(
 object ReactPropsExtractor {
 
     private const val MAX_DEPTH = 8
-    private const val MAX_TYPE_LENGTH = 70
+    private const val MAX_INHERITED = 25
+
+    /** Tipos genéricos de utilidad que aparecen en `extends` y no aportan props propias. */
+    private val IGNORED_BASES = setOf("StandardProps", "DistributiveOmit", "Omit", "Partial", "Pick", "OverridableStringUnion")
 
     /** Resuelve el elemento destino del hover a un componente React (nombre en PascalCase). */
-    fun findComponent(element: PsiElement?, depth: Int = 0): ReactComponent? {
+    fun findComponent(element: PsiElement?): ReactComponent? =
+        findDeclaration(element)?.takeIf { it.name.firstOrNull()?.isUpperCase() == true }
+
+    /**
+     * Sigue imports, re-exportaciones y `export default X` hasta la declaración real
+     * (variable, función o clase) y devuelve su nombre y su función, si la tiene.
+     */
+    fun findDeclaration(element: PsiElement?, depth: Int = 0): ReactComponent? {
         if (element == null || depth > MAX_DEPTH) return null
         return when (element) {
             is ES6ImportedBinding ->
-                element.findReferencedElements().firstNotNullOfOrNull { findComponent(it, depth + 1) }
+                element.findReferencedElements().firstNotNullOfOrNull { findDeclaration(it, depth + 1) }
 
             // Re-exportaciones de librerías: `export { default as Button } from './Button'`
             is ES6ImportExportSpecifierAlias ->
-                findComponent(element.findAliasedElement(), depth + 1)
-                    ?: findComponent(element.findSpecifierElement(), depth + 1)
+                findDeclaration(element.findAliasedElement(), depth + 1)
+                    ?: findDeclaration(element.findSpecifierElement(), depth + 1)
 
             is ES6ImportExportSpecifier ->
-                element.resolveOverAliases(HashSet()).firstNotNullOfOrNull { findComponent(it.element, depth + 1) }
+                element.resolveOverAliases(HashSet()).firstNotNullOfOrNull { findDeclaration(it.element, depth + 1) }
 
             // `export default Button;`
             is ES6ExportDefaultAssignment ->
-                findComponent(
+                findDeclaration(
                     element.namedElement
                         ?: PsiTreeUtil.findChildOfType(element, JSReferenceExpression::class.java)?.resolve(),
                     depth + 1,
@@ -69,23 +90,22 @@ object ReactPropsExtractor {
 
             is JSVariable -> {
                 val name = element.name ?: return null
-                component(name, element, unwrapFunction(element.initializer, depth))
+                declaration(name, element, unwrapFunction(element.initializer, depth))
             }
 
             is JSFunction -> {
                 val name = element.name ?: PsiTreeUtil.getParentOfType(element, JSVariable::class.java)?.name
                 ?: return null
-                component(name, element, element)
+                declaration(name, element, element)
             }
 
-            is JSClass -> component(element.name ?: return null, element, null)
+            is JSClass -> declaration(element.name ?: return null, element, null)
 
             else -> null
         }
     }
 
-    private fun component(name: String, declaration: PsiElement, function: JSFunction?): ReactComponent? {
-        if (name.firstOrNull()?.isUpperCase() != true) return null
+    private fun declaration(name: String, declaration: PsiElement, function: JSFunction?): ReactComponent? {
         val file = declaration.containingFile ?: return null
         return ReactComponent(name, declaration, function, file)
     }
@@ -105,14 +125,29 @@ object ReactPropsExtractor {
         }
     }
 
-    fun extractProps(component: ReactComponent): List<ReactProp> {
+    /** Sigue alias de import/export hasta el elemento declarado (interfaz, tipo, variable…). */
+    private fun followAliases(element: PsiElement?): PsiElement? {
+        var current = element
+        repeat(MAX_DEPTH) {
+            current = when (val e = current) {
+                is ES6ImportedBinding -> e.findReferencedElements().firstOrNull()
+                is ES6ImportExportSpecifierAlias -> e.findAliasedElement() ?: e.findSpecifierElement()
+                is ES6ImportExportSpecifier -> e.resolveOverAliases(HashSet()).firstOrNull()?.element
+                else -> return e
+            }
+        }
+        return current
+    }
+
+    fun extractProps(component: ReactComponent): ComponentProps {
         if (component.file.name.endsWith(".d.ts")) return declarationFileProps(component)
 
         val propTypes = objectAssignedTo(component, "propTypes")
         val defaults = objectAssignedTo(component, "defaultProps")
             ?.properties?.mapNotNull { p -> p.name?.let { it to p.value?.text?.compact() } }?.toMap()
             .orEmpty()
-        val destructured = destructuredProps(component.function)
+        val usage = propsUsage(component.function)
+        val checkWarnings = propTypes != null && ReactPropsDocSettings.options.showWarnings
 
         val result = LinkedHashMap<String, ReactProp>()
         propTypes?.properties?.forEach { p ->
@@ -122,41 +157,125 @@ object ReactPropsExtractor {
                 name = name,
                 type = formatType(raw),
                 required = raw.endsWith(".isRequired"),
-                defaultValue = defaults[name] ?: destructured[name],
+                defaultValue = defaults[name] ?: usage.props[name],
+                description = JsDoc.of(p)?.summary,
+                warning = if (checkWarnings && usage.complete && name !in usage.props) "no se usa en el componente" else null,
             )
         }
-        destructured.forEach { (name, default) ->
-            if (name !in result) result[name] = ReactProp(name = name, defaultValue = defaults[name] ?: default)
+        usage.props.forEach { (name, default) ->
+            if (name !in result) {
+                result[name] = ReactProp(
+                    name = name,
+                    defaultValue = defaults[name] ?: default,
+                    warning = if (checkWarnings) "no está declarada en propTypes" else null,
+                )
+            }
         }
         defaults.forEach { (name, default) ->
             if (name !in result) result[name] = ReactProp(name = name, defaultValue = default)
         }
-        return result.values.toList()
+        return ComponentProps(result.values.toList())
     }
+
+    // ---------- .d.ts de librerías (MUI) ----------
 
     /**
      * Props declaradas en un `.d.ts` de librería (p. ej. @mui/material): toma solo las props propias del
      * componente (`XxxOwnProps`, `BaseXxxProps` o `XxxProps`), sin las heredadas de HTML/React.
+     * Si no están en el mismo archivo (Box), las busca siguiendo el `XxxTypeMap` de su tipo.
      */
-    private fun declarationFileProps(component: ReactComponent): List<ReactProp> {
-        val interfaces = PsiTreeUtil.findChildrenOfType(component.file, TypeScriptInterface::class.java)
-            .associateBy { it.name }
-        val props = listOf("${component.name}OwnProps", "Base${component.name}Props", "${component.name}Props")
-            .firstNotNullOfOrNull { interfaces[it] }
-            ?: return emptyList()
+    private fun declarationFileProps(component: ReactComponent): ComponentProps {
+        val propsInterface = propsInterfaceIn(component.file, component.name)
+            ?: PsiTreeUtil.findChildrenOfType(component.declaration, JSReferenceExpression::class.java)
+                .filter { it.referenceName?.endsWith("TypeMap") == true }
+                .firstNotNullOfOrNull { ref ->
+                    followAliases(ref.resolve())?.containingFile?.let { propsInterfaceIn(it, component.name) }
+                }
+            ?: return ComponentProps(emptyList())
 
-        return props.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>().mapNotNull { member ->
-            val name = member.name ?: return@mapNotNull null
-            val doc = JsDoc.of(member)
-            ReactProp(
-                name = name,
-                type = member.typeDeclaration?.text?.compact()?.let(::truncate),
-                required = !member.isOptional,
-                defaultValue = doc?.defaultValue,
-                description = doc?.summary,
-            )
+        val own = propsInterface.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>()
+            .mapNotNull { member ->
+                val name = member.name ?: return@mapNotNull null
+                val doc = JsDoc.of(member)
+                ReactProp(
+                    name = name,
+                    type = member.typeDeclaration?.text?.compact()?.let(::truncate),
+                    required = !member.isOptional,
+                    defaultValue = doc?.defaultValue,
+                    description = doc?.summary,
+                )
+            }
+        val inherited = if (ReactPropsDocSettings.options.showInherited) {
+            inheritedProps(propsInterface, own.map { it.name }.toSet())
+        } else {
+            emptyList()
+        }
+        return ComponentProps(own, inherited)
+    }
+
+    private fun propsInterfaceIn(file: PsiFile, base: String): TypeScriptInterface? {
+        val interfaces = PsiTreeUtil.findChildrenOfType(file, TypeScriptInterface::class.java).associateBy { it.name }
+        return listOf("${base}OwnProps", "Base${base}Props", "${base}Props").firstNotNullOfOrNull { interfaces[it] }
+    }
+
+    /** Agrupa las props de los tipos en `extends` (Card ← Paper, Dialog ← Modal, Grid ← Breakpoints). */
+    private fun inheritedProps(propsInterface: TypeScriptInterface, ownNames: Set<String>): List<InheritedProps> {
+        val extendsList = propsInterface.extendsList ?: return emptyList()
+        return PsiTreeUtil.findChildrenOfType(extendsList, JSReferenceExpression::class.java)
+            .distinctBy { it.referenceName }
+            .mapNotNull { ref ->
+                val name = ref.referenceName ?: return@mapNotNull null
+                when {
+                    name in IGNORED_BASES || name == "Theme" -> null
+                    name == "SystemProps" -> InheritedProps(
+                        "MUI System", emptyList(), "props de estilo: m, p, display, color, bgcolor, width…",
+                    )
+                    else -> {
+                        val names = typeMembers(followAliases(ref.resolve()), name)
+                            .filter { it !in ownNames }
+                        if (names.isEmpty()) null
+                        else InheritedProps(name.removeSuffix("OwnProps").removeSuffix("Props"), names.take(MAX_INHERITED))
+                    }
+                }
+            }
+    }
+
+    /** Nombres de las props de un tipo resuelto: interfaz propia del componente, la interfaz misma o la del alias. */
+    private fun typeMembers(target: PsiElement?, name: String): List<String> {
+        fun members(i: TypeScriptInterface) =
+            i.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>().mapNotNull { it.name }
+
+        val file = target?.containingFile ?: return emptyList()
+        val base = name.removeSuffix("OwnProps").removeSuffix("Props")
+        if (name.endsWith("Props")) propsInterfaceIn(file, base)?.let { return members(it) }
+        return when (target) {
+            is TypeScriptInterface -> members(target)
+            // `type Breakpoints = IfEquals<..., RegularBreakpoints, ...>`: primera interfaz con props
+            is TypeScriptTypeAlias -> PsiTreeUtil.findChildrenOfType(target, JSReferenceExpression::class.java)
+                .mapNotNull { followAliases(it.resolve()) as? TypeScriptInterface }
+                .map(::members)
+                .firstOrNull { it.isNotEmpty() }
+                .orEmpty()
+            else -> emptyList()
         }
     }
+
+    // ---------- Hover sobre una prop (`openDialog=`) ----------
+
+    /** Si el elemento es una propiedad de `Componente.propTypes`, devuelve el componente y la prop. */
+    fun findPropTypesEntry(element: PsiElement?): Pair<ReactComponent, ReactProp>? {
+        val property = element as? JSProperty ?: element?.parent as? JSProperty ?: return null
+        val assignment = (property.parent as? JSObjectLiteralExpression)?.parent as? JSAssignmentExpression ?: return null
+        val target = assignment.lOperand?.text?.compact() ?: return null
+        if (!target.endsWith(".propTypes")) return null
+        val componentRef = PsiTreeUtil.findChildrenOfType(assignment.lOperand, JSReferenceExpression::class.java)
+            .firstOrNull { it.qualifier == null } ?: return null
+        val component = findComponent(componentRef.resolve()) ?: return null
+        val prop = extractProps(component).own.firstOrNull { it.name == property.name } ?: return null
+        return component to prop
+    }
+
+    // ---------- Componentes propios (propTypes / desestructuración) ----------
 
     /** Busca `Componente.<field> = { ... }` en el archivo del componente. */
     private fun objectAssignedTo(component: ReactComponent, field: String): JSObjectLiteralExpression? {
@@ -166,13 +285,22 @@ object ReactPropsExtractor {
             ?.rOperand as? JSObjectLiteralExpression
     }
 
-    /** Props desestructuradas en la firma o en el cuerpo, y accesos `props.xxx`. Valor = default si lo tiene. */
-    private fun destructuredProps(function: JSFunction?): Map<String, String?> {
-        val param = function?.parameters?.firstOrNull() ?: return emptyMap()
+    /**
+     * Props usadas por el componente (desestructuradas o `props.xxx`), con su valor por defecto.
+     * `complete` = se puede afirmar que no usa otras (sin `...rest`, `{...props}` ni `props` pasado entero).
+     */
+    private data class PropsUsage(val props: Map<String, String?>, val complete: Boolean)
+
+    private fun propsUsage(function: JSFunction?): PropsUsage {
+        val param = function?.parameters?.firstOrNull() ?: return PropsUsage(emptyMap(), false)
         val result = LinkedHashMap<String, String?>()
+        var complete = true
 
         fun collect(obj: JSDestructuringObject?) {
+            if (obj == null || obj.text.contains("...")) complete = false
             obj?.properties?.forEach { p ->
+                // `...rest` no es una prop
+                if (p.text.startsWith("...")) return@forEach
                 val name = p.name ?: return@forEach
                 val default = p.destructuringElement?.initializer?.text?.compact()
                 result.putIfAbsent(name, default)
@@ -182,16 +310,23 @@ object ReactPropsExtractor {
         when (param) {
             is JSDestructuringParameter -> collect(param.target as? JSDestructuringObject)
             is JSParameter -> {
-                val paramName = param.name ?: return emptyMap()
-                PsiTreeUtil.findChildrenOfType(function, JSDestructuringElement::class.java)
-                    .filter { it.initializer?.text == paramName }
-                    .forEach { collect(it.target as? JSDestructuringObject) }
+                val paramName = param.name ?: return PropsUsage(emptyMap(), false)
                 PsiTreeUtil.findChildrenOfType(function, JSReferenceExpression::class.java)
-                    .filter { (it.qualifier as? JSReferenceExpression)?.let { q -> q.qualifier == null && q.text == paramName } == true }
-                    .forEach { ref -> ref.referenceName?.let { result.putIfAbsent(it, null) } }
+                    .filter { it.qualifier == null && it.referenceName == paramName }
+                    .forEach { ref ->
+                        val parent = ref.parent
+                        when {
+                            parent is JSReferenceExpression && parent.qualifier == ref ->
+                                parent.referenceName?.let { result.putIfAbsent(it, null) }
+                            parent is JSDestructuringElement && parent.initializer == ref ->
+                                collect(parent.target as? JSDestructuringObject)
+                            else -> complete = false
+                        }
+                    }
             }
+            else -> complete = false
         }
-        return result
+        return PropsUsage(result, complete)
     }
 
     /** true si el componente ya documenta sus props con JSDoc (`@param props.xxx`), para no duplicar. */
@@ -221,7 +356,10 @@ object ReactPropsExtractor {
         return truncate(type)
     }
 
-    private fun truncate(type: String) = if (type.length > MAX_TYPE_LENGTH) type.take(MAX_TYPE_LENGTH) + "…" else type
+    fun truncate(type: String): String {
+        val max = ReactPropsDocSettings.options.maxTypeLength
+        return if (type.length > max) type.take(max) + "…" else type
+    }
 
-    private fun String.compact(): String = replace(Regex("\\s+"), " ").replace(Regex(",\\s*([}\\]])"), "$1").trim()
+    fun String.compact(): String = replace(Regex("\\s+"), " ").replace(Regex(",\\s*([}\\]])"), "$1").trim()
 }

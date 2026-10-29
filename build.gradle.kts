@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.angelminga"
-version = "1.2.0"
+version = "1.3.0"
 
 repositories {
     mavenCentral()
@@ -17,6 +17,7 @@ dependencies {
     intellijPlatform {
         local(providers.gradleProperty("ideaPath"))
         bundledPlugin("JavaScript")
+        bundledPlugin("com.intellij.xml")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
     }
     testImplementation("junit:junit:4.13.2")
@@ -36,4 +37,9 @@ intellijPlatform {
     }
     buildSearchableOptions = false
     instrumentCode = false
+}
+
+tasks.test {
+    // Prueba de humo opcional contra un proyecto real: -PrealProject=/ruta/al/proyecto
+    providers.gradleProperty("realProject").orNull?.let { environment("REACT_PROPS_DOC_PROJECT", it) }
 }

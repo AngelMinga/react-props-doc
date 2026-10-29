@@ -10,39 +10,39 @@ import com.intellij.platform.backend.documentation.PsiDocumentationTargetProvide
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.SmartPointerManager
 
 /**
  * Se registra como `psiTargetProvider` (API nueva de documentación): el IDE la consulta antes que los
- * `lang.documentationProvider` clásicos, así la sección "Props" aparece también cuando otros proveedores
+ * `lang.documentationProvider` clásicos, así nuestras secciones aparecen también cuando otros proveedores
  * (como el del plugin de React) responden primero.
  */
 class ReactPropsDocumentationTargetProvider : PsiDocumentationTargetProvider {
 
     override fun documentationTarget(element: PsiElement, originalElement: PsiElement?): DocumentationTarget? {
-        val component = ReactPropsExtractor.findComponent(element) ?: return null
-        if (ReactPropsExtractor.hasJsDocProps(component)) return null
-        if (ReactPropsExtractor.extractProps(component).isEmpty()) return null
-        return ReactPropsDocumentationTarget(element, originalElement, component.name)
+        if (ReactPropsDocumentation.generate(element, originalElement, baseOnly = true) == null) return null
+        val name = (element as? PsiNamedElement)?.name ?: element.text?.take(40) ?: return null
+        return ReactPropsDocumentationTarget(element, originalElement, name)
     }
 }
 
 class ReactPropsDocumentationTarget(
     private val element: PsiElement,
     private val originalElement: PsiElement?,
-    private val componentName: String,
+    private val name: String,
 ) : DocumentationTarget {
 
     override fun createPointer(): Pointer<out DocumentationTarget> {
         val elementPointer = SmartPointerManager.createPointer(element)
         val originalPointer = originalElement?.let { SmartPointerManager.createPointer(it) }
         return Pointer {
-            elementPointer.element?.let { ReactPropsDocumentationTarget(it, originalPointer?.element, componentName) }
+            elementPointer.element?.let { ReactPropsDocumentationTarget(it, originalPointer?.element, name) }
         }
     }
 
     override fun computePresentation(): TargetPresentation =
-        TargetPresentation.builder(componentName).icon(element.getIcon(0)).presentation()
+        TargetPresentation.builder(name).icon(element.getIcon(0)).presentation()
 
     override val navigatable: Navigatable?
         get() = element as? Navigatable
@@ -55,28 +55,105 @@ class ReactPropsDocumentationTarget(
         ReactPropsDocumentation.generate(element, originalElement)?.let { DocumentationResult.documentation(it) }
 }
 
-/** Arma el HTML: documentación de los proveedores del IDE + sección "Props". */
+/** Arma el HTML: documentación de los proveedores del IDE + nuestras secciones. */
 object ReactPropsDocumentation {
+
+    private val options get() = ReactPropsDocSettings.options
 
     fun legacyProviders(element: PsiElement) = LanguageDocumentation.INSTANCE.allForLanguage(element.language)
 
-    fun generate(element: PsiElement, originalElement: PsiElement?): String? {
-        val component = ReactPropsExtractor.findComponent(element) ?: return null
-        val props = ReactPropsExtractor.extractProps(component)
-        if (props.isEmpty()) return null
+    /**
+     * Componente → sección "Props"; hook → "Parámetros"/"Devuelve"; prop de `propTypes` → su detalle.
+     * Con `baseOnly` solo comprueba si aplica (devuelve "" sin llamar a los demás proveedores).
+     */
+    fun generate(element: PsiElement, originalElement: PsiElement?, baseOnly: Boolean = false): String? {
+        ReactPropsExtractor.findComponent(element)
+            ?.takeUnless { ReactPropsExtractor.hasJsDocProps(it) }
+            ?.let { component ->
+                val props = ReactPropsExtractor.extractProps(component)
+                if (!props.isEmpty()) {
+                    return if (baseOnly) "" else componentDoc(element, originalElement, component, props)
+                }
+            }
 
-        val row = renderProps(props)
-        val section = DocumentationMarkup.SECTIONS_START + row + DocumentationMarkup.SECTIONS_END
+        if (options.showHooks) {
+            HookExtractor.findHook(element)?.let { hook ->
+                return if (baseOnly) "" else hookDoc(element, originalElement, hook)
+            }
+        }
+
+        if (options.showPropHover) {
+            ReactPropsExtractor.findPropTypesEntry(element)?.let { (component, prop) ->
+                return if (baseOnly) "" else propDoc(element, originalElement, component, prop)
+            }
+        }
+        return null
+    }
+
+    private fun componentDoc(element: PsiElement, original: PsiElement?, component: ReactComponent, props: ComponentProps): String {
+        val rows = buildList {
+            if (props.own.isNotEmpty()) add(section("Props (${props.own.size}):", props.own.joinToString("<br/>", transform = ::propRow)))
+            props.inherited.forEach { group ->
+                val content = buildString {
+                    if (group.names.isNotEmpty()) append(group.names.joinToString(", ") { "<code>${esc(it)}</code>" })
+                    group.note?.let { append(esc(it)) }
+                }
+                add(section("Heredadas de ${esc(group.source)}:", content))
+            }
+        }.joinToString("")
+
         val definition = DocumentationMarkup.DEFINITION_START + "<b>" + esc(component.name) + "</b>" +
             DocumentationMarkup.DEFINITION_END
-        val base = legacyProviders(element).firstNotNullOfOrNull { it.generateDoc(element, originalElement) }
-            ?.let { replaceDefinition(it, definition) }
-            ?: return definition + section
+        return insert(baseDoc(element, original), rows, if (options.hideSignature) definition else null, definition)
+    }
 
-        // Insertar antes de la fila con la ubicación (icono + nombre del .jsx o del paquete npm), que va al final
-        val icon = base.lastIndexOf("<icon src=")
-        val locationRow = if (icon >= 0) base.lastIndexOf("<tr>", icon) else -1
-        return if (locationRow >= 0) base.substring(0, locationRow) + row + base.substring(locationRow) else base + section
+    private fun hookDoc(element: PsiElement, original: PsiElement?, hook: HookInfo): String {
+        val rows = buildString {
+            if (hook.params.isNotEmpty()) {
+                append(section("Parámetros:", hook.params.joinToString("<br/>", transform = ::hookValueRow)))
+            }
+            val title = if (hook.returnsArray) "Devuelve [${hook.returns.size}]:" else "Devuelve (${hook.returns.size}):"
+            val content = hook.returns.joinToString("<br/>", transform = ::hookValueRow) +
+                if (hook.partial) "<br/><i>Algún return no se pudo analizar: la lista puede estar incompleta.</i>" else ""
+            append(section(title, content))
+        }
+        val definition = DocumentationMarkup.DEFINITION_START + "<b>" + esc(hook.hook.name) + "</b>" +
+            DocumentationMarkup.DEFINITION_END
+        return insert(baseDoc(element, original), rows, null, definition)
+    }
+
+    private fun propDoc(element: PsiElement, original: PsiElement?, component: ReactComponent, prop: ReactProp): String {
+        val rows = buildString {
+            append(section("Componente:", "<b>${esc(component.name)}</b>"))
+            append(section("Requerida:", if (prop.required) "<b>sí</b>" else "no"))
+            prop.defaultValue?.let { append(section("Por defecto:", "<code>${esc(it)}</code>")) }
+            prop.type?.let { type ->
+                Regex("^oneOf\\(\\[(.*)]\\)$").find(type)?.groupValues?.get(1)?.let { values ->
+                    append(section("Valores:", values.split(",").joinToString(" | ") { "<code>${esc(it.trim())}</code>" }))
+                }
+            }
+            prop.description?.let { append(section("Descripción:", formatDescription(it))) }
+            prop.warning?.let { append(section("Aviso:", "⚠ ${esc(it)}")) }
+        }
+        val definition = DocumentationMarkup.DEFINITION_START + "<b>" + esc(prop.name) + "</b>" +
+            (prop.type?.let { ": " + esc(it) } ?: "") + DocumentationMarkup.DEFINITION_END
+        return insert(baseDoc(element, original), rows, null, definition)
+    }
+
+    private fun baseDoc(element: PsiElement, original: PsiElement?): String? =
+        legacyProviders(element).firstNotNullOfOrNull { it.generateDoc(element, original) }
+
+    /**
+     * Inserta las filas antes de la ubicación del archivo (icono + nombre del .jsx o del paquete npm).
+     * `replaceDefinition` sustituye la firma del IDE; `fallbackDefinition` se usa si no hay documentación base.
+     */
+    private fun insert(base: String?, rows: String, replaceDefinition: String?, fallbackDefinition: String): String {
+        if (base == null) return fallbackDefinition + DocumentationMarkup.SECTIONS_START + rows + DocumentationMarkup.SECTIONS_END
+        val doc = if (replaceDefinition != null) replaceDefinition(base, replaceDefinition) else base
+        val icon = doc.lastIndexOf("<icon src=")
+        val locationRow = if (icon >= 0) doc.lastIndexOf("<tr>", icon) else -1
+        return if (locationRow >= 0) doc.substring(0, locationRow) + rows + doc.substring(locationRow)
+        else doc + DocumentationMarkup.SECTIONS_START + rows + DocumentationMarkup.SECTIONS_END
     }
 
     /** La firma que genera el IDE (larga en librerías como MUI) se reemplaza por el nombre: las props ya se listan. */
@@ -88,26 +165,28 @@ object ReactPropsDocumentation {
         return base.substring(0, start) + definition + base.substring(end + DocumentationMarkup.DEFINITION_END.length)
     }
 
-    private fun renderProps(props: List<ReactProp>): String {
-        val rows = props.joinToString("<br/>") { p ->
-            buildString {
-                append("<code>").append(esc(p.name)).append("</code>")
-                p.type?.let { append(": ").append(esc(it)) }
-                when {
-                    p.required -> append(" — <b>requerida</b>")
-                    p.defaultValue != null -> append(" — opcional (= <code>").append(esc(p.defaultValue)).append("</code>)")
-                    p.type != null -> append(" — opcional")
-                }
-                p.description?.let {
-                    val html = esc(it).replace(Regex("`([^`]+)`"), "<code>$1</code>")
-                    append("<br/>&nbsp;&nbsp;&nbsp;&nbsp;<i>").append(html).append("</i>")
-                }
-            }
-        }
-        return DocumentationMarkup.SECTION_HEADER_START + "Props (${props.size}):" +
-            DocumentationMarkup.SECTION_SEPARATOR + rows +
+    private fun section(header: String, content: String) =
+        DocumentationMarkup.SECTION_HEADER_START + header + DocumentationMarkup.SECTION_SEPARATOR + content +
             DocumentationMarkup.SECTION_END
+
+    private fun propRow(p: ReactProp) = buildString {
+        append("<code>").append(esc(p.name)).append("</code>")
+        p.type?.let { append(": ").append(esc(it)) }
+        when {
+            p.required -> append(" — <b>requerida</b>")
+            p.defaultValue != null -> append(" — opcional (= <code>").append(esc(p.defaultValue)).append("</code>)")
+            p.type != null -> append(" — opcional")
+        }
+        p.warning?.let { append(" ⚠ <i>").append(esc(it)).append("</i>") }
+        if (options.showDescriptions) {
+            p.description?.let { append("<br/>&nbsp;&nbsp;&nbsp;&nbsp;<i>").append(formatDescription(it)).append("</i>") }
+        }
     }
+
+    private fun hookValueRow(v: HookValue) =
+        "<code>${esc(v.name)}</code>" + (v.kind?.let { if (it.startsWith("=")) " ${esc(it)}" else " — ${esc(it)}" } ?: "")
+
+    private fun formatDescription(text: String) = esc(text).replace(Regex("`([^`]+)`"), "<code>$1</code>")
 
     private fun esc(text: String) = StringUtil.escapeXmlEntities(text)
 }
