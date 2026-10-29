@@ -57,6 +57,33 @@ class ReduxCompletionContributor : CompletionContributor() {
     }
 }
 
+/** Hover sobre `buttons.cancel` cuando viene de `getLanguagePage(…)`: el texto en cada idioma. */
+class TranslationAccessDocumentationTargetProvider : DocumentationTargetProvider {
+
+    override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
+        if (!ReactPropsDocSettings.options.showTranslations) return emptyList()
+        val ref = file.findElementAt(offset)?.parent as? JSReferenceExpression ?: return emptyList()
+        if (ref.qualifier == null) return emptyList()
+        val path = Translations.expressionPath(ref)?.takeIf { it.size > 1 } ?: return emptyList()
+        val files = Translations.files(file.project) ?: return emptyList()
+        if (files.valueAt(files.baseLang, path) == null) return emptyList()
+        return listOf(TranslationAccessTarget(ref, path))
+    }
+}
+
+class TranslationAccessTarget(private val ref: JSReferenceExpression, private val path: List<String>) : DocumentationTarget {
+
+    override fun createPointer(): Pointer<out DocumentationTarget> {
+        val pointer = SmartPointerManager.createPointer(ref)
+        return Pointer { pointer.element?.let { TranslationAccessTarget(it, path) } }
+    }
+
+    override fun computePresentation() = TargetPresentation.builder(path.drop(1).joinToString(".")).presentation()
+
+    override fun computeDocumentation() =
+        DocumentationResult.documentation(ReactPropsDocumentation.translationHtml(ref.project, path))
+}
+
 /** Hover sobre `state.catalog` (o `state.catalog.data`) dentro de `useSelector`. */
 class ReduxDocumentationTargetProvider : DocumentationTargetProvider {
 
@@ -130,10 +157,18 @@ class ReactPropsGotoDeclarationHandler : GotoDeclarationHandler {
         return target?.let { arrayOf(it) }
     }
 
+    /**
+     * Clave desestructurada (`const { title } = getLanguagePage(…)`, también anidada) o acceso `buttons.cancel`
+     * cuyo origen es `getLanguagePage` → la propiedad en el JSON del idioma base.
+     * Una variable suelta (`buttons`) sigue yendo a su declaración, como siempre.
+     */
     private fun translationKeyTarget(source: PsiElement): PsiElement? {
-        PsiTreeUtil.getParentOfType(source, JSDestructuringProperty::class.java, false) ?: return null
-        val usage = Translations.keyUsage(source) ?: return null
         val files = Translations.files(source.project) ?: return null
-        return files.page(files.baseLang, usage.page)?.findProperty(usage.key ?: return null)
+        val path = PsiTreeUtil.getParentOfType(source, JSDestructuringProperty::class.java, false)
+            ?.let { Translations.pathOfElement(it) }
+            ?: (source.parent as? JSReferenceExpression)?.takeIf { it.qualifier != null }?.let { Translations.expressionPath(it) }
+            ?: return null
+        if (path.size < 2) return null
+        return files.propertyAt(files.baseLang, path)
     }
 }

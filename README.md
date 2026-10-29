@@ -5,7 +5,7 @@ ayuda con las traducciones de páginas (`getLanguagePage('página')`). Nació pa
 (React + Module Federation + MUI), pero funciona en cualquier proyecto React con `propTypes` o MUI.
 
 - **IDE:** IntelliJ IDEA Ultimate 2026.3 o superior (requiere los plugins JavaScript y JSON incluidos).
-- **Versión actual:** 1.8.0
+- **Versión actual:** 1.8.1
 
 ## Instalación
 
@@ -52,6 +52,10 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 ### Traducciones en el editor
 - `getLanguagePage('│')`: autocompleta las páginas; Ctrl+clic abre la página en `es.json`.
 - Ctrl+clic en una clave desestructurada (`const { title } = getLanguagePage('página')`) abre esa clave en `es.json`.
+- Sigue la cadena completa hasta `getLanguagePage`: desestructuraciones anidadas (`conditions: { optionLabels }`),
+  de segundo nivel (`const { buttons } = summary`) y accesos (`buttons.cancel`). En esos accesos, Ctrl+clic abre la
+  clave en `es.json` (en vez de la lista de `cancel()` de las librerías) y el hover muestra el texto en cada idioma.
+  Sobre una variable suelta (`buttons`), Ctrl+clic sigue yendo a su declaración.
 - `const { │ } = getLanguagePage('página')`: autocompleta las claves con su texto. También con `|| {}` / `?? {}`.
 - **Extraer a traducciones** (Alt+Enter sobre un texto fijo del JSX o una prop de texto como `title="…"`): pide la
   clave (sugerida a partir del texto), la agrega a la página en `es.json` y marcada `[ES]` en los demás idiomas,
@@ -99,6 +103,7 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 ## Historial
 | Versión | Cambios |
 |---|---|
+| 1.8.1 | Traducciones: Ctrl+clic y hover en accesos (`buttons.cancel`) y desestructuraciones anidadas o de segundo nivel. |
 | 1.8.0 | Redux (`useSelector`: autocompletado, hover y Ctrl+clic); Ctrl+clic en claves de traducción; hooks con spread y resultado por partes; `Omit` en props heredadas. |
 | 1.7.0 | Extraer texto a traducciones; aviso de prop que el componente no acepta; README. |
 | 1.6.1 | Tipos y valores por defecto en props heredadas y atributos HTML. |

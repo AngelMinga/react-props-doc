@@ -36,8 +36,11 @@
                                 implementationClass="dev.angelminga.reactpropsdoc.ReduxCompletionContributor"/>
         <platform.backend.documentation.targetProvider
                 implementation="dev.angelminga.reactpropsdoc.ReduxDocumentationTargetProvider"/>
+        <!-- Hover en accesos a traducciones (buttons.cancel): antes que la resolución ambigua del IDE -->
+        <platform.backend.documentation.targetProvider order="first"
+                implementation="dev.angelminga.reactpropsdoc.TranslationAccessDocumentationTargetProvider"/>
         <!-- Ctrl+clic: state.x → reducer / clave de traducción → JSON -->
-        <gotoDeclarationHandler implementation="dev.angelminga.reactpropsdoc.ReactPropsGotoDeclarationHandler"/>
+        <gotoDeclarationHandler order="first" implementation="dev.angelminga.reactpropsdoc.ReactPropsGotoDeclarationHandler"/>
 
         <!-- Traducciones: Ctrl+clic / autocompletado de páginas y claves de getLanguagePage('…') -->
         <psi.referenceContributor language="JavaScript"

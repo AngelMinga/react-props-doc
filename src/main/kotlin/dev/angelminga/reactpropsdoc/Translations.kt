@@ -15,8 +15,10 @@ import com.intellij.lang.javascript.psi.JSDestructuringObject
 import com.intellij.lang.javascript.psi.JSDestructuringProperty
 import com.intellij.lang.javascript.psi.JSExpression
 import com.intellij.lang.javascript.psi.JSLiteralExpression
+import com.intellij.lang.javascript.psi.JSParameterListElement
 import com.intellij.lang.javascript.psi.JSParenthesizedExpression
 import com.intellij.lang.javascript.psi.JSReferenceExpression
+import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -45,6 +47,13 @@ data class TranslationFiles(val baseLang: String, val files: Map<String, JsonFil
         var current: JsonValue? = files[lang]?.topLevelValue
         for (name in path) current = (current as? JsonObject)?.findProperty(name)?.value ?: return null
         return current
+    }
+
+    /** La propiedad del JSON en `path` (`["página", "summary", "buttons", "cancel"]`), si existe. */
+    fun propertyAt(lang: String, path: List<String>): JsonProperty? {
+        if (path.isEmpty()) return null
+        val parent = if (path.size == 1) root(lang) else valueAt(lang, path.dropLast(1)) as? JsonObject
+        return parent?.findProperty(path.last())
     }
 
     /** Idiomas (distintos al base) en los que falta la ruta. */
@@ -131,6 +140,67 @@ object Translations {
         val page = pageOf(call) ?: return null
         return TranslationUsage(page, property.name ?: return null, call)
     }
+
+    private const val MAX_CHAIN = 10
+
+    /**
+     * Ruta en las traducciones de una expresión: sigue variables y desestructuraciones hasta `getLanguagePage('p')`.
+     * `buttons.cancel` con `const { buttons } = summary` y `const { summary } = getLanguagePage('investmentPage')`
+     * → `["investmentPage", "summary", "buttons", "cancel"]`.
+     */
+    fun expressionPath(expr: JSExpression?, depth: Int = 0): List<String>? {
+        if (depth > MAX_CHAIN) return null
+        return when (val e = unwrapFallback(expr)) {
+            is JSCallExpression -> pageOf(e)?.let { listOf(it) }
+            is JSReferenceExpression -> {
+                val qualifier = e.qualifier
+                if (qualifier != null) {
+                    val name = e.referenceName ?: return null
+                    expressionPath(qualifier, depth + 1)?.plus(name)
+                } else {
+                    (e.resolve() as? JSVariable)?.let { variablePath(it, depth + 1) }
+                }
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * Ruta de una variable: por su inicializador (`const t = getLanguagePage('p')`, `const x = t.a`) o por la
+     * desestructuración que la declara, incluidas las anidadas (`const { conditions: { optionLabels } } = …`).
+     */
+    fun variablePath(variable: JSVariable, depth: Int = 0): List<String>? {
+        if (depth > MAX_CHAIN) return null
+        if (variable.parent !is JSDestructuringProperty) {
+            return variable.initializer?.let { expressionPath(it, depth + 1) }
+        }
+        val keys = ArrayDeque<String>()
+        var current: PsiElement = variable
+        while (true) {
+            val property = current.parent as? JSDestructuringProperty ?: return null
+            keys.addFirst(property.name ?: return null)
+            val obj = property.parent as? JSDestructuringObject ?: return null
+            when (val owner = obj.parent) {
+                is JSDestructuringProperty -> current = obj
+                is JSDestructuringElement -> {
+                    if (owner is JSParameterListElement) return null
+                    // Anidado (`conditions: { optionLabels }`): el objeto va envuelto en un elemento sin inicializador
+                    if (owner.parent is JSDestructuringProperty) { current = owner; continue }
+                    return expressionPath(owner.initializer, depth + 1)?.plus(keys)
+                }
+                else -> return null
+            }
+        }
+    }
+
+    /** Ruta en traducciones de una variable, una propiedad desestructurada o un acceso `a.b`. */
+    fun pathOfElement(element: PsiElement?): List<String>? = when (element) {
+        is JSVariable -> variablePath(element)
+        is JSDestructuringProperty -> (element.destructuringElement as? JSVariable)?.let(::variablePath)
+            ?: PsiTreeUtil.findChildOfType(element, JSVariable::class.java)?.let(::variablePath)
+        is JSReferenceExpression -> expressionPath(element)
+        else -> null
+    }?.takeIf { it.isNotEmpty() }
 
     /** Ruta de una propiedad dentro de un archivo de traducción: `["page", "stepLabels", "FORM"]`. */
     fun pathOf(property: JsonProperty): Pair<String, List<String>>? {

@@ -108,14 +108,17 @@ object ReactPropsDocumentation {
             return path
         }
         if (element !is JSVariable && element !is JSDestructuringProperty) return null
-        val usage = Translations.keyUsage(element) ?: return null
+        val path = Translations.pathOfElement(element)?.takeIf { it.size > 1 } ?: return null
         val files = Translations.files(element.project) ?: return null
-        if (files.page(files.baseLang, usage.page)?.findProperty(usage.key!!) == null) return null
-        return listOf(usage.page, usage.key)
+        return path.takeIf { files.valueAt(files.baseLang, it) != null }
     }
 
-    private fun translationDoc(element: PsiElement, original: PsiElement?, path: List<String>): String {
-        val files = Translations.files(element.project) ?: return ""
+    private fun translationDoc(element: PsiElement, original: PsiElement?, path: List<String>): String =
+        translationHtml(element.project, path)
+
+    /** Ficha de una ruta de traducción: el texto en cada idioma y cómo agregar lo que falta. */
+    fun translationHtml(project: com.intellij.openapi.project.Project, path: List<String>): String {
+        val files = Translations.files(project) ?: return ""
         val rows = buildString {
             append(section("Página:", "<code>${esc(path.first())}</code>"))
             files.files.keys.forEach { lang ->
