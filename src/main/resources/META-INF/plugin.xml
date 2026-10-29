@@ -17,6 +17,7 @@
               idioma, y corrección rápida que las copia desde el idioma base marcadas con <code>[ES]</code> para traducirlas.</li>
           <li>Aviso de props que el componente no acepta (<code>&lt;Button text="…"&gt;</code>) con correcciones.</li>
           <li>Extraer texto fijo del JSX a las traducciones (Alt+Enter).</li>
+          <li>Redux: autocompletado, hover (estado inicial y acciones) y Ctrl+clic en <code>useSelector(state =&gt; state.x)</code>.</li>
           <li>Ajustes en Settings → Tools → React Props Doc.</li>
         </ul>
     ]]></description>
@@ -30,6 +31,14 @@
         <platform.backend.documentation.psiTargetProvider
                 order="first"
                 implementation="dev.angelminga.reactpropsdoc.ReactPropsDocumentationTargetProvider"/>
+        <!-- Redux: useSelector(state => state.x) -->
+        <completion.contributor language="JavaScript"
+                                implementationClass="dev.angelminga.reactpropsdoc.ReduxCompletionContributor"/>
+        <platform.backend.documentation.targetProvider
+                implementation="dev.angelminga.reactpropsdoc.ReduxDocumentationTargetProvider"/>
+        <!-- Ctrl+clic: state.x → reducer / clave de traducción → JSON -->
+        <gotoDeclarationHandler implementation="dev.angelminga.reactpropsdoc.ReactPropsGotoDeclarationHandler"/>
+
         <!-- Traducciones: Ctrl+clic / autocompletado de páginas y claves de getLanguagePage('…') -->
         <psi.referenceContributor language="JavaScript"
                                   implementation="dev.angelminga.reactpropsdoc.TranslationReferenceContributor"/>

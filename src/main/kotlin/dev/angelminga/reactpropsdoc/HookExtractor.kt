@@ -1,6 +1,7 @@
 package dev.angelminga.reactpropsdoc
 
 import com.intellij.lang.javascript.psi.JSArrayLiteralExpression
+import com.intellij.lang.javascript.psi.JSAssignmentExpression
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSDestructuringArray
 import com.intellij.lang.javascript.psi.JSDestructuringElement
@@ -12,8 +13,10 @@ import com.intellij.lang.javascript.psi.JSLiteralExpression
 import com.intellij.lang.javascript.psi.JSObjectLiteralExpression
 import com.intellij.lang.javascript.psi.JSParameter
 import com.intellij.lang.javascript.psi.JSParenthesizedExpression
+import com.intellij.lang.javascript.psi.JSProperty
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.lang.javascript.psi.JSReturnStatement
+import com.intellij.lang.javascript.psi.JSSpreadExpression
 import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.lang.javascript.psi.JSXmlLiteralExpression
 import com.intellij.psi.PsiElement
@@ -46,9 +49,14 @@ object HookExtractor {
         val returns = LinkedHashMap<String, HookValue>()
         returnExpressions(function).forEach { expr ->
             when (val value = resolveValue(expr)) {
-                is JSObjectLiteralExpression -> value.properties.forEach { p ->
-                    val name = p.name ?: return@forEach
-                    returns.putIfAbsent(name, HookValue(name, kindOf(p.value)))
+                is JSObjectLiteralExpression -> {
+                    if (!collectObject(value, returns, mutableSetOf())) partial = true
+                    // `const result = {}; result.a = x; return result`: también las asignaciones por partes
+                    returnedVariable(expr)?.let { variable ->
+                        assignedKeys(function, variable).forEach { (name, assigned) ->
+                            returns.putIfAbsent(name, HookValue(name, kindOf(assigned)))
+                        }
+                    }
                 }
                 is JSArrayLiteralExpression -> {
                     returnsArray = true
@@ -62,6 +70,41 @@ object HookExtractor {
         }
         if (returns.isEmpty() && partial) return null
         return HookInfo(hook, params(function), returns.values.toList(), returnsArray, partial)
+    }
+
+    /**
+     * Claves de un objeto literal, incluidas las de `...otro` si `otro` es un objeto literal conocido.
+     * Devuelve false si algún spread no se puede resolver (la lista queda incompleta).
+     */
+    private fun collectObject(obj: JSObjectLiteralExpression, into: MutableMap<String, HookValue>, visited: MutableSet<PsiElement>): Boolean {
+        if (!visited.add(obj)) return true
+        var complete = true
+        obj.propertiesIncludingSpreads.forEach { element ->
+            when (element) {
+                is JSProperty -> element.name?.let { into.putIfAbsent(it, HookValue(it, kindOf(element.value))) }
+                is JSSpreadExpression -> {
+                    val spread = resolveValue(element.expression) as? JSObjectLiteralExpression
+                    if (spread == null || !collectObject(spread, into, visited)) complete = false
+                }
+            }
+        }
+        return complete
+    }
+
+    /** `return result` → la variable local `result`. */
+    private fun returnedVariable(expr: JSExpression): JSVariable? {
+        val ref = (if (expr is JSParenthesizedExpression) expr.innerExpression else expr) as? JSReferenceExpression ?: return null
+        return ref.resolve() as? JSVariable
+    }
+
+    /** `result.clave = valor` dentro del hook. */
+    private fun assignedKeys(function: JSFunction, variable: JSVariable): List<Pair<String, JSExpression?>> {
+        val name = variable.name ?: return emptyList()
+        return PsiTreeUtil.findChildrenOfType(function, JSAssignmentExpression::class.java).mapNotNull { assignment ->
+            val target = assignment.lOperand?.text?.replace(Regex("\\s+"), "") ?: return@mapNotNull null
+            val key = Regex("^${Regex.escape(name)}\\.(\\w+)$").find(target)?.groupValues?.get(1) ?: return@mapNotNull null
+            key to assignment.rOperand
+        }
     }
 
     /** Expresiones de los `return` propios del hook (no de funciones internas). */

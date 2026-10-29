@@ -67,6 +67,11 @@ class RealProjectSmokeTest : BasePlatformTestCase() {
         failures.take(20).forEach { println("SMOKE error: $it") }
         assertEmpty(failures)
 
+        // Redux: partes del estado encontradas y su estado inicial
+        ReduxState.slices(project).values.forEach { slice ->
+            println("SMOKE redux ${slice.name}: ${ReduxState.preview(slice.initialState)} (${slice.reducer?.containingFile?.name})")
+        }
+
         // Inspecciones nuevas sobre todo el proyecto
         val context = InspectionManager.getInstance(project).createNewGlobalContext() as GlobalInspectionContext
         val tools = listOf(

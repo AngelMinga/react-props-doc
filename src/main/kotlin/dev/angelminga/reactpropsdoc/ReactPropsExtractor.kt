@@ -352,6 +352,7 @@ object ReactPropsExtractor {
     /** Agrupa las props de los tipos en `extends` (Card ← Paper, Dialog ← Modal, Grid ← Breakpoints). */
     private fun inheritedProps(propsInterface: TypeScriptInterface, ownNames: Set<String>): List<InheritedProps> {
         val extendsList = propsInterface.extendsList ?: return emptyList()
+        val omitted = omittedKeys(extendsList.text)
         return PsiTreeUtil.findChildrenOfType(extendsList, JSReferenceExpression::class.java)
             .distinctBy { it.referenceName }
             .mapNotNull { ref ->
@@ -362,13 +363,28 @@ object ReactPropsExtractor {
                         "MUI System", emptyList(), "props de estilo: m, p, display, color, bgcolor, width…",
                     )
                     else -> {
-                        val props = typeMembers(followAliases(ref.resolve()), name).filter { it.name !in ownNames }
+                        val excluded = omitted[name].orEmpty()
+                        val props = typeMembers(followAliases(ref.resolve()), name)
+                            .filter { it.name !in ownNames && it.name !in excluded }
                         if (props.isEmpty()) null
                         else InheritedProps(name.removeSuffix("OwnProps").removeSuffix("Props"), props.take(MAX_INHERITED))
                     }
                 }
             }
     }
+
+    /**
+     * Claves excluidas en `extends`: `Omit<X, 'a' | 'b'>`, `DistributiveOmit<X, 'a'>` y `StandardProps<X, 'a'>`
+     * → `{ X: [a, b] }`.
+     */
+    fun omittedKeys(extendsText: String): Map<String, Set<String>> =
+        Regex("(?:Distributive)?Omit<\\s*([\\w.]+)\\s*,([^>]*)>|StandardProps<\\s*([\\w.]+)\\s*,([^>]*)>")
+            .findAll(extendsText)
+            .associate { match ->
+                val type = match.groupValues[1].ifEmpty { match.groupValues[3] }.substringAfterLast('.')
+                val keys = match.groupValues[2].ifEmpty { match.groupValues[4] }
+                type to Regex("['\"]([^'\"]+)['\"]").findAll(keys).map { it.groupValues[1] }.toSet()
+            }
 
     /** Props de un tipo resuelto: interfaz propia del componente, la interfaz misma o la del alias. */
     private fun typeMembers(target: PsiElement?, name: String): List<ReactProp> {

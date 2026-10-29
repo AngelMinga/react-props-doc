@@ -5,7 +5,7 @@ ayuda con las traducciones de páginas (`getLanguagePage('página')`). Nació pa
 (React + Module Federation + MUI), pero funciona en cualquier proyecto React con `propTypes` o MUI.
 
 - **IDE:** IntelliJ IDEA Ultimate 2026.3 o superior (requiere los plugins JavaScript y JSON incluidos).
-- **Versión actual:** 1.7.0
+- **Versión actual:** 1.8.0
 
 ## Instalación
 
@@ -22,11 +22,20 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 |---|---|
 | Props de tus componentes | Desde `propTypes`, `defaultProps` y la desestructuración (`({ a, b = 1 })` o `const { a } = props`), con tipo, requerida y valor por defecto. Soporta `memo`/`forwardRef` e imports federados vía `jsconfig.json`. |
 | Props de MUI | Lee los `.d.ts`: `XxxOwnProps` / `BaseXxxProps` / `XxxProps`, con tipo, `@default` y descripción. Sigue re-exportaciones (`index.d.ts`) y `Box` (vía `@mui/system`). |
-| Props heredadas | ButtonBase, Paper, Modal, Breakpoints… con tipo y valor por defecto; atributos HTML del elemento raíz (`<button>`, `<div>`…) con sus tipos de `@types/react`. En componentes ButtonBase, `type` muestra `(= 'button')`. |
+| Props heredadas | ButtonBase, Paper, Modal, Breakpoints… con tipo y valor por defecto, sin las excluidas por `Omit` / `DistributiveOmit` / `StandardProps<X, 'a'>`; atributos HTML del elemento raíz (`<button>`, `<div>`…) con sus tipos de `@types/react`. En componentes ButtonBase, `type` muestra `(= 'button')`. |
 | Firma resumida | Oculta la firma larga del IDE cuando se muestran las props (configurable). |
 | Hover sobre una prop | En `openDialog=`: componente, si es requerida, valor por defecto y valores de `oneOf`. |
-| Ficha de hooks | Parámetros y lo que devuelven (estado, función, JSX, arreglo…). |
+| Ficha de hooks | Parámetros y lo que devuelven (estado, función, JSX, arreglo…). Incluye `...spread` de objetos conocidos y resultados armados por partes (`result.a = …; return result`). |
 | Traducciones | Sobre una clave de `getLanguagePage`: el texto en cada idioma (ES/EN/KI), avisa si falta y explica cómo agregarla con el atajo real del keymap. |
+
+### Redux (`useSelector(state => state.x)`)
+- `state.│` autocompleta las partes del estado (`catalog`, `bankList`…) y `state.catalog.│` las claves de su
+  estado inicial. Soporta `combineReducers`, `configureStore({ reducer: { … } })` y `createSlice`.
+- Al pasar el mouse sobre `state.catalog`: el reducer, su estado inicial y las acciones que maneja
+  (`case fetchDataCatalog:`). Si un valor empieza vacío (`data: {}`), lo indica: su contenido llega al procesar una acción.
+- Ctrl+clic en `state.catalog` abre el reducer; en `state.catalog.loading`, esa clave del estado inicial.
+- Funciona con reducers de otros micro-frontends (alias de `jsconfig.json`); si el import no se resuelve, busca el
+  reducer por nombre.
 
 ### Avisos (inspecciones) y correcciones rápidas (Alt+Enter)
 | Aviso | Corrección |
@@ -42,6 +51,7 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 
 ### Traducciones en el editor
 - `getLanguagePage('│')`: autocompleta las páginas; Ctrl+clic abre la página en `es.json`.
+- Ctrl+clic en una clave desestructurada (`const { title } = getLanguagePage('página')`) abre esa clave en `es.json`.
 - `const { │ } = getLanguagePage('página')`: autocompleta las claves con su texto. También con `|| {}` / `?? {}`.
 - **Extraer a traducciones** (Alt+Enter sobre un texto fijo del JSX o una prop de texto como `title="…"`): pide la
   clave (sugerida a partir del texto), la agrega a la página en `es.json` y marcada `[ES]` en los demás idiomas,
@@ -55,12 +65,10 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 
 | Mejora | Para qué |
 |---|---|
-| Redux: autocompletado y hover en `useSelector(state => state.x)` | Ver la forma del estado (`initialState`) sin abrir el reducer. |
 | Revisar `package.json` y `jsconfig.json` | Avisar versiones distintas de librerías compartidas por Module Federation y mapeos que `webpack` ya no expone. |
-| Ctrl+clic en una clave de traducción | Abrir la clave en `es.json` (hoy solo funciona con el nombre de la página). |
+| Redux: contenido real de `data` | Hoy se muestra el estado inicial (`data: {}`); la forma real llega del backend. Podría inferirse de los usos en el código (`catalog.data.entity…`). |
+| Redux: `useSelector` con selectores definidos aparte (`useSelector(selectCatalog)`) | Hoy solo funciona con la función en línea (`state => state.x`). |
 | Revisar props de componentes con MUI System | Hoy `Box`, `Typography`, `Grid` y `Stack` no se revisan en *Prop que el componente no acepta*. |
-| Hooks que arman el resultado por partes (`return result`) | Analizarlos en la ficha y en el aviso de hooks. |
-| `Omit<…>` en props heredadas de MUI | No mostrar las props que el `Omit` excluye. |
 | Extraer texto en componentes sin `getLanguagePage` | Agregar también el `useTranslateContext()` y la llamada. |
 | Publicación | Push a GitHub y un workflow que genere el `.zip` en cada release (el build usa el IntelliJ local; en CI habría que descargarlo). |
 | Probar en el IDE | Revisar en el popup real lo verificado con pruebas automáticas (Box con pnpm, traducciones, Alt+Enter). |
@@ -71,7 +79,9 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 - *Prop que el componente no acepta* solo revisa cuando conoce todas las props: en componentes propios, sin
   `...rest` ni `{...props}`; en MUI, si toda la herencia se resuelve y el tag no usa `component=`.
 - Las traducciones copiadas llevan el texto del idioma base para traducirlo después.
-- La ficha de hooks solo analiza `return { … }` / `return [ … ]` directos.
+- La ficha de hooks analiza `return { … }`, `return [ … ]`, `...spread` de objetos locales y `result.a = …`; si
+  algún `return` o spread no se puede resolver, la lista se marca como incompleta y el aviso de hooks no se aplica.
+- Redux muestra el estado **inicial**: lo que el backend llena después (p. ej. `catalog.data`) no se conoce desde el código.
 
 ## Desarrollo
 
@@ -89,6 +99,7 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 ## Historial
 | Versión | Cambios |
 |---|---|
+| 1.8.0 | Redux (`useSelector`: autocompletado, hover y Ctrl+clic); Ctrl+clic en claves de traducción; hooks con spread y resultado por partes; `Omit` en props heredadas. |
 | 1.7.0 | Extraer texto a traducciones; aviso de prop que el componente no acepta; README. |
 | 1.6.1 | Tipos y valores por defecto en props heredadas y atributos HTML. |
 | 1.6.0 | Generar `propTypes`; Alt+Enter en el aviso de hooks; prefijo `[ES]`. |
