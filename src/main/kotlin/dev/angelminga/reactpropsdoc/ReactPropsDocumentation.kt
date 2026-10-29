@@ -67,14 +67,25 @@ object ReactPropsDocumentation {
 
         val row = renderProps(props)
         val section = DocumentationMarkup.SECTIONS_START + row + DocumentationMarkup.SECTIONS_END
+        val definition = DocumentationMarkup.DEFINITION_START + "<b>" + esc(component.name) + "</b>" +
+            DocumentationMarkup.DEFINITION_END
         val base = legacyProviders(element).firstNotNullOfOrNull { it.generateDoc(element, originalElement) }
-            ?: return DocumentationMarkup.DEFINITION_START + "<b>" + esc(component.name) +
-            "</b>" + DocumentationMarkup.DEFINITION_END + section
+            ?.let { replaceDefinition(it, definition) }
+            ?: return definition + section
 
         // Insertar antes de la fila con la ubicación (icono + nombre del .jsx o del paquete npm), que va al final
         val icon = base.lastIndexOf("<icon src=")
         val locationRow = if (icon >= 0) base.lastIndexOf("<tr>", icon) else -1
         return if (locationRow >= 0) base.substring(0, locationRow) + row + base.substring(locationRow) else base + section
+    }
+
+    /** La firma que genera el IDE (larga en librerías como MUI) se reemplaza por el nombre: las props ya se listan. */
+    private fun replaceDefinition(base: String, definition: String): String {
+        val start = base.indexOf(DocumentationMarkup.DEFINITION_START)
+        if (start < 0) return base
+        val end = base.indexOf(DocumentationMarkup.DEFINITION_END, start)
+        if (end < 0) return base
+        return base.substring(0, start) + definition + base.substring(end + DocumentationMarkup.DEFINITION_END.length)
     }
 
     private fun renderProps(props: List<ReactProp>): String {

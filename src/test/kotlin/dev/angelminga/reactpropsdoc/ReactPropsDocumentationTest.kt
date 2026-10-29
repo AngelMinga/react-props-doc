@@ -35,6 +35,9 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
         assertTrue(doc, doc.contains("If <code>true</code>, the component is disabled."))
         assertTrue("Props debe ir antes de la ubicación", doc.indexOf("Props (") < doc.lastIndexOf("<icon src="))
         assertFalse("No debe listar props HTML heredadas", doc.contains("<code>onClick</code>"))
+        assertFalse("La firma larga del IDE debe ocultarse", doc.contains("ExtendButtonBase"))
+        assertTrue(doc, doc.contains("<b>Button</b>"))
+        assertTrue("Se conserva el resto de la documentación (Demos/API)", doc.contains("Button API"))
     }
 
     fun testMuiTextField() {
