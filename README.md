@@ -67,6 +67,16 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 
 ## Pendiente
 
+### Automatización del desarrollo (propuestas a partir del análisis de bancapersonas)
+| Mejora | Para qué |
+|---|---|
+| Generador de flujo por pasos | Hay 33 flujos con la misma estructura (`Form`/`Confirm`/`OTP`/`Voucher` + `useStep`/`useForm`/`useOTP`/`useVoucher`/`useConfirm`). Crearlos desde un asistente: archivos, página de traducciones, exposición en webpack, mapeos en `jsconfig.json` y ruta en `mftheme`. |
+| Exponer un módulo en Module Federation | Agregar `"./MFX": "./src/…"` al `webpack.config.js` del remote y el mapeo en todos los `jsconfig.json` que lo consumen (1196 mapeos mantenidos a mano; 6 archivos son copias idénticas). |
+| Revisar que los `jsconfig.json` estén sincronizados | Avisar cuando una copia se desfasa o tiene mapeos que `webpack` ya no expone, con corrección para sincronizar. |
+| Auto-import con el alias federado | Al usar un componente o hook de otro remote, importar `MFComponents/ComponentX` en vez de una ruta relativa (verificar antes qué hace IntelliJ). |
+| Plantillas de código (live templates) | Bloques que se repiten: llamada a `fetchDataPromise` (202 usos) con manejo de `COD_OK`, `useSelector(state => state.catalog)`, desestructuración de `getLanguagePage`. |
+
+### Otras
 | Mejora | Para qué |
 |---|---|
 | Revisar `package.json` y `jsconfig.json` | Avisar versiones distintas de librerías compartidas por Module Federation y mapeos que `webpack` ya no expone. |
