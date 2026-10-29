@@ -71,8 +71,8 @@ object ReactPropsDocumentation {
             ?: return DocumentationMarkup.DEFINITION_START + "<b>" + esc(component.name) +
             "</b>" + DocumentationMarkup.DEFINITION_END + section
 
-        // Insertar antes de la fila con la ubicación del archivo (icono + nombre del .jsx / paquete)
-        val icon = base.indexOf("<icon src='AllIcons.FileTypes")
+        // Insertar antes de la fila con la ubicación (icono + nombre del .jsx o del paquete npm), que va al final
+        val icon = base.lastIndexOf("<icon src=")
         val locationRow = if (icon >= 0) base.lastIndexOf("<tr>", icon) else -1
         return if (locationRow >= 0) base.substring(0, locationRow) + row + base.substring(locationRow) else base + section
     }
@@ -87,7 +87,10 @@ object ReactPropsDocumentation {
                     p.defaultValue != null -> append(" — opcional (= <code>").append(esc(p.defaultValue)).append("</code>)")
                     p.type != null -> append(" — opcional")
                 }
-                p.description?.let { append("<br/>&nbsp;&nbsp;&nbsp;&nbsp;<i>").append(esc(it)).append("</i>") }
+                p.description?.let {
+                    val html = esc(it).replace(Regex("`([^`]+)`"), "<code>$1</code>")
+                    append("<br/>&nbsp;&nbsp;&nbsp;&nbsp;<i>").append(html).append("</i>")
+                }
             }
         }
         return DocumentationMarkup.SECTION_HEADER_START + "Props (${props.size}):" +

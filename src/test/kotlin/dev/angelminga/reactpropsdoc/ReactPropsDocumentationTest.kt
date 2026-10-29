@@ -32,7 +32,8 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
         assertNotNull(doc)
         assertTrue(doc!!, doc.contains("Props ("))
         assertTrue(doc, doc.contains("<code>disabled</code>: boolean — opcional (= <code>false</code>)"))
-        assertTrue(doc, doc.contains("If `true`, the component is disabled."))
+        assertTrue(doc, doc.contains("If <code>true</code>, the component is disabled."))
+        assertTrue("Props debe ir antes de la ubicación", doc.indexOf("Props (") < doc.lastIndexOf("<icon src="))
         assertFalse("No debe listar props HTML heredadas", doc.contains("<code>onClick</code>"))
     }
 
