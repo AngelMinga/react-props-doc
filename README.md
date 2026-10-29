@@ -5,7 +5,7 @@ ayuda con las traducciones de páginas (`getLanguagePage('página')`). Nació pa
 (React + Module Federation + MUI), pero funciona en cualquier proyecto React con `propTypes` o MUI.
 
 - **IDE:** IntelliJ IDEA Ultimate 2026.3 o superior (requiere los plugins JavaScript y JSON incluidos).
-- **Versión actual:** 1.8.1
+- **Versión actual:** 1.9.0
 
 ## Instalación
 
@@ -36,13 +36,19 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 - Ctrl+clic en `state.catalog` abre el reducer; en `state.catalog.loading`, esa clave del estado inicial.
 - Funciona con reducers de otros micro-frontends (alias de `jsconfig.json`); si el import no se resuelve, busca el
   reducer por nombre.
+- **Forma real del estado:** lo que el backend llena (p. ej. `catalog.data`) se deduce de cómo se usa en todo el
+  proyecto (`catalogState.data.entity.colorPrimary`, `const { data } = useSelector(…)`, `const { entity } = data`…).
+  El hover lo muestra en *Usado en el código* y el autocompletado lo sugiere como *visto en el código*.
+- También en variables que vienen de `useSelector` (`const catalogState = useSelector(…)` → `catalogState.data.│`) y
+  con selectores definidos aparte (`useSelector(selectCatalog)`, funciones `select*` o `*Selector`).
+- Cuando conoce las claves, el autocompletado muestra solo esas (sin la lista genérica `constructor`, `toString`…).
 
 ### Avisos (inspecciones) y correcciones rápidas (Alt+Enter)
 | Aviso | Corrección |
 |---|---|
 | Prop usada sin declarar en `propTypes` | Agregar esa prop o todas las que faltan, deduciendo el tipo (valor por defecto o nombre: `is*` → bool, `handle*`/`on*` → func, `*Text` → string…). |
 | Componente sin `propTypes` (intención sobre su nombre) | *Generar propTypes* con todas las props que usa, y el `import PropTypes` si falta. |
-| Prop que el componente no acepta (`<Button text="Buscar">`) | Cambiar por una prop de nombre parecido, usar el texto como contenido (children) o quitarla. |
+| Prop que el componente no acepta (`<Button text="Buscar">`), también en `Box`/`Typography`/`Grid`/`Stack` (acepta sus props de estilo: `m`, `px`, `bgcolor`, propiedades CSS…) | Cambiar por una prop de nombre parecido, usar el texto como contenido (children) o quitarla. |
 | Valor desestructurado que el hook no devuelve | *Cambiar por 'x'* (el más parecido primero) y renombra sus usos. |
 | Página o clave de traducción inexistente | — |
 | Clave o página que falta en otro idioma (en el código y en `en.json`/`ki.json`) | Copiarla desde el idioma base, marcada con `[ES]`, respetando la indentación del archivo. |
@@ -60,6 +66,9 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 - **Extraer a traducciones** (Alt+Enter sobre un texto fijo del JSX o una prop de texto como `title="…"`): pide la
   clave (sugerida a partir del texto), la agrega a la página en `es.json` y marcada `[ES]` en los demás idiomas,
   reemplaza el texto por la variable y la agrega a la desestructuración de `getLanguagePage`.
+  - En componentes que aún no usan traducciones, primero pide la página (sugiere la de los archivos vecinos o la de la
+    carpeta; se puede escribir una nueva y se crea en los JSON) y agrega `useTranslateContext()`, la llamada a
+    `getLanguagePage` y el import que usa esa app.
 
 ### Comprobado que IntelliJ ya lo hace (no se duplicó)
 - Aviso de prop requerida faltante con Alt+Enter (*Missing required attribute*, usa `propTypes`).
@@ -80,10 +89,6 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 | Mejora | Para qué |
 |---|---|
 | Revisar `package.json` y `jsconfig.json` | Avisar versiones distintas de librerías compartidas por Module Federation y mapeos que `webpack` ya no expone. |
-| Redux: contenido real de `data` | Hoy se muestra el estado inicial (`data: {}`); la forma real llega del backend. Podría inferirse de los usos en el código (`catalog.data.entity…`). |
-| Redux: `useSelector` con selectores definidos aparte (`useSelector(selectCatalog)`) | Hoy solo funciona con la función en línea (`state => state.x`). |
-| Revisar props de componentes con MUI System | Hoy `Box`, `Typography`, `Grid` y `Stack` no se revisan en *Prop que el componente no acepta*. |
-| Extraer texto en componentes sin `getLanguagePage` | Agregar también el `useTranslateContext()` y la llamada. |
 | Publicación | Push a GitHub y un workflow que genere el `.zip` en cada release (el build usa el IntelliJ local; en CI habría que descargarlo). |
 | Probar en el IDE | Revisar en el popup real lo verificado con pruebas automáticas (Box con pnpm, traducciones, Alt+Enter). |
 
@@ -91,11 +96,12 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 - Los tipos deducidos al generar `propTypes` son una aproximación (por nombre o valor por defecto); si no se puede
   deducir se usa `PropTypes.any`. Las props agregadas quedan opcionales (sin `.isRequired`).
 - *Prop que el componente no acepta* solo revisa cuando conoce todas las props: en componentes propios, sin
-  `...rest` ni `{...props}`; en MUI, si toda la herencia se resuelve y el tag no usa `component=`.
+  `...rest` ni `{...props}`; en MUI, si toda la herencia se resuelve y el tag no usa `component=`. Las props de MUI
+  System salen de `csstype` y `@mui/system` (lista generada en `mui-system-props.txt`).
 - Las traducciones copiadas llevan el texto del idioma base para traducirlo después.
 - La ficha de hooks analiza `return { … }`, `return [ … ]`, `...spread` de objetos locales y `result.a = …`; si
   algún `return` o spread no se puede resolver, la lista se marca como incompleta y el aviso de hooks no se aplica.
-- Redux muestra el estado **inicial**: lo que el backend llena después (p. ej. `catalog.data`) no se conoce desde el código.
+- Redux: la forma de lo que llega del backend se deduce de los usos; una clave que nunca se lee en el código no aparece.
 
 ## Desarrollo
 
@@ -113,6 +119,7 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 ## Historial
 | Versión | Cambios |
 |---|---|
+| 1.9.0 | Redux: forma real deducida de los usos, variables y selectores aparte; MUI System revisado; extraer texto en componentes sin traducciones; autocompletado sin lista genérica. |
 | 1.8.1 | Traducciones: Ctrl+clic y hover en accesos (`buttons.cancel`) y desestructuraciones anidadas o de segundo nivel. |
 | 1.8.0 | Redux (`useSelector`: autocompletado, hover y Ctrl+clic); Ctrl+clic en claves de traducción; hooks con spread y resultado por partes; `Omit` en props heredadas. |
 | 1.7.0 | Extraer texto a traducciones; aviso de prop que el componente no acepta; README. |

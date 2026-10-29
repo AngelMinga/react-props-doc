@@ -64,9 +64,20 @@ class ExtractionAndUnknownPropsTest : BasePlatformTestCase() {
         assertEquals(listOf("Dialog no tiene la prop 'foo'"), problems().filter { "no tiene la prop" in it })
     }
 
-    fun testSystemComponentsAreNotChecked() {
-        mui("""<><Box text="x" mt={2} /><Typography text="y" /></>""")
-        assertEmpty(problems().filter { "no tiene la prop" in it })
+    fun testSystemComponentsAcceptStylePropsAndFlagUnknown() {
+        mui(
+            """<>
+                <Box text="x" mt={2} px={1} bgcolor="red" display="flex" gap={2} sx={{}} component="span" />
+                <Typography text="y" variant="h4" color="primary" fontWeight={600} textAlign="center" gutterBottom />
+            </>""",
+        )
+        // Box con component= no se revisa; Typography sí
+        assertEquals(listOf("Typography no tiene la prop 'text'"), problems().filter { "no tiene la prop" in it })
+    }
+
+    fun testBoxWithoutComponentIsChecked() {
+        mui("""<Box text="x" mt={2} bgcolor="red" display="flex" />""")
+        assertEquals(listOf("Box no tiene la prop 'text'"), problems().filter { "no tiene la prop" in it })
     }
 
     fun testOwnComponentUnknownProp() {

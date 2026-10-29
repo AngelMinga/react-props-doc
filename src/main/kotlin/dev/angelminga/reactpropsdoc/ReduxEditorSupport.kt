@@ -25,17 +25,22 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 
-/** `useSelector(state => state.│)`: partes del estado; `state.catalog.│`: claves de su estado inicial. */
+/**
+ * `useSelector(state => state.│)`: partes del estado; `state.catalog.│` o `catalogState.data.│` (variable que viene
+ * de `useSelector`): claves del estado inicial y las que se usan en el código.
+ */
 class ReduxCompletionContributor : CompletionContributor() {
 
     init {
         extend(CompletionType.BASIC, PlatformPatterns.psiElement(), object : CompletionProvider<CompletionParameters>() {
             override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
                 val ref = parameters.position.parent as? JSReferenceExpression ?: return
-                if (ref.qualifier == null) return
-                val path = ReduxState.selectorPath(ref) ?: return
-                val slices = ReduxState.slices(ref.project)
-                val parentPath = path.dropLast(1)
+                val qualifier = ref.qualifier as? JSReferenceExpression ?: return
+                val project = ref.project
+                val slices = ReduxState.slices(project)
+                val parentPath = ReduxState.selectorPath(ref)?.dropLast(1)
+                    ?: ReduxState.valuePath(qualifier)
+                    ?: return
                 if (parentPath.isEmpty()) {
                     slices.values.forEach { slice ->
                         result.addElement(
@@ -44,17 +49,95 @@ class ReduxCompletionContributor : CompletionContributor() {
                                 .withTailText("  (Redux)", true),
                         )
                     }
+                    // Se conocen las partes del estado: sin la lista genérica de propiedades del IDE
+                    if (slices.isNotEmpty()) result.stopHere()
                     return
                 }
                 val slice = slices[parentPath.first()] ?: return
-                val obj = ReduxState.valueAt(slice, parentPath.drop(1)) as? JSObjectLiteralExpression ?: return
-                obj.properties.forEach { property ->
+                val added = mutableSetOf<String>()
+                (ReduxState.valueAt(slice, parentPath.drop(1)) as? JSObjectLiteralExpression)?.properties?.forEach { property ->
                     val name = property.name ?: return@forEach
+                    added += name
                     result.addElement(LookupElementBuilder.create(name).withTypeText(ReduxState.preview(property.value, 40)))
                 }
+                // Lo que llega en tiempo de ejecución (p. ej. catalog.data.entity) se deduce de los usos en el código
+                ReduxUsage.observed(project).at(parentPath)?.children?.forEach { (name, node) ->
+                    if (name in added || name.contains("IntellijIdeaRulezzz")) return@forEach
+                    added += name
+                    result.addElement(
+                        LookupElementBuilder.create(name).withTypeText("usado ${node.uses}×").withTailText("  (visto en el código)", true),
+                    )
+                }
+                // Con claves conocidas, se ocultan las sugerencias genéricas (constructor, toString, a, aac…)
+                if (added.isNotEmpty()) result.stopHere()
             }
         })
     }
+}
+
+/** Hover sobre `state.catalog` dentro de `useSelector`, o sobre `catalogState.data` si viene de `useSelector`. */
+class ReduxDocumentationTargetProvider : DocumentationTargetProvider {
+
+    override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
+        val ref = file.findElementAt(offset)?.parent as? JSReferenceExpression ?: return emptyList()
+        val path = (ReduxState.selectorPath(ref) ?: ref.qualifier?.let { ReduxState.valuePath(ref) })
+            ?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        if (ReduxState.slices(file.project)[path.first()] == null) return emptyList()
+        return listOf(ReduxDocumentationTarget(ref, path))
+    }
+}
+
+class ReduxDocumentationTarget(private val ref: JSReferenceExpression, private val path: List<String>) : DocumentationTarget {
+
+    override fun createPointer(): Pointer<out DocumentationTarget> {
+        val pointer = SmartPointerManager.createPointer(ref)
+        return Pointer { pointer.element?.let { ReduxDocumentationTarget(it, path) } }
+    }
+
+    override fun computePresentation() = TargetPresentation.builder("state." + path.joinToString(".")).presentation()
+
+    override fun computeDocumentation(): DocumentationResult? {
+        val slice = ReduxState.slices(ref.project)[path.first()] ?: return null
+        val value = ReduxState.valueAt(slice, path.drop(1))
+        val observed = ReduxUsage.observed(ref.project).at(path)
+        val rows = buildString {
+            append(section("Reducer:", "<code>${esc(slice.name)}</code> — ${esc(slice.reducer?.containingFile?.name ?: "?")}"))
+            val obj = value as? JSObjectLiteralExpression
+            when {
+                obj != null && obj.properties.isNotEmpty() -> append(
+                    section(
+                        "Estado inicial:",
+                        obj.properties.joinToString("<br/>") { p ->
+                            "<code>${esc(p.name ?: "?")}</code>: ${esc(ReduxState.preview(p.value))}"
+                        },
+                    ),
+                )
+                value != null -> append(section("Valor inicial:", "<code>${esc(ReduxState.preview(value))}</code>"))
+                else -> append(section("Valor inicial:", "<i>no está en el estado inicial (llega en tiempo de ejecución)</i>"))
+            }
+            if (observed != null && observed.children.isNotEmpty()) {
+                append(
+                    section(
+                        "Usado en el código:",
+                        ReduxUsage.describe(observed).joinToString("<br/>") { "<code>${esc(it.substringBefore(' '))}</code>${esc(it.removePrefix(it.substringBefore(' ')))}" },
+                    ),
+                )
+            } else if (obj != null && obj.properties.isEmpty() || value?.text == "null") {
+                append(section("Nota:", "Empieza vacío: su contenido lo pone el reducer al procesar una acción (p. ej. la respuesta del backend)."))
+            }
+            val actions = ReduxState.actions(slice)
+            if (actions.isNotEmpty()) append(section("Acciones:", actions.joinToString(", ") { "<code>${esc(it)}</code>" }))
+        }
+        val html = DocumentationMarkup.DEFINITION_START + "<b>state." + esc(path.joinToString(".")) + "</b>" +
+            DocumentationMarkup.DEFINITION_END + DocumentationMarkup.SECTIONS_START + rows + DocumentationMarkup.SECTIONS_END
+        return DocumentationResult.documentation(html)
+    }
+
+    private fun section(header: String, content: String) =
+        DocumentationMarkup.SECTION_HEADER_START + header + DocumentationMarkup.SECTION_SEPARATOR + content +
+            DocumentationMarkup.SECTION_END
+
+    private fun esc(text: String) = StringUtil.escapeXmlEntities(text)
 }
 
 /** Hover sobre `buttons.cancel` cuando viene de `getLanguagePage(…)`: el texto en cada idioma. */
@@ -84,62 +167,6 @@ class TranslationAccessTarget(private val ref: JSReferenceExpression, private va
         DocumentationResult.documentation(ReactPropsDocumentation.translationHtml(ref.project, path))
 }
 
-/** Hover sobre `state.catalog` (o `state.catalog.data`) dentro de `useSelector`. */
-class ReduxDocumentationTargetProvider : DocumentationTargetProvider {
-
-    override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
-        val ref = file.findElementAt(offset)?.parent as? JSReferenceExpression ?: return emptyList()
-        val path = ReduxState.selectorPath(ref)?.takeIf { it.isNotEmpty() } ?: return emptyList()
-        if (ReduxState.slices(file.project)[path.first()] == null) return emptyList()
-        return listOf(ReduxDocumentationTarget(ref, path))
-    }
-}
-
-class ReduxDocumentationTarget(private val ref: JSReferenceExpression, private val path: List<String>) : DocumentationTarget {
-
-    override fun createPointer(): Pointer<out DocumentationTarget> {
-        val pointer = SmartPointerManager.createPointer(ref)
-        return Pointer { pointer.element?.let { ReduxDocumentationTarget(it, path) } }
-    }
-
-    override fun computePresentation() = TargetPresentation.builder("state." + path.joinToString(".")).presentation()
-
-    override fun computeDocumentation(): DocumentationResult? {
-        val slice = ReduxState.slices(ref.project)[path.first()] ?: return null
-        val value = ReduxState.valueAt(slice, path.drop(1))
-        val rows = buildString {
-            append(section("Reducer:", "<code>${esc(slice.name)}</code> — ${esc(slice.reducer?.containingFile?.name ?: "?")}"))
-            val obj = value as? JSObjectLiteralExpression
-            if (obj != null && obj.properties.isNotEmpty()) {
-                append(
-                    section(
-                        "Estado inicial:",
-                        obj.properties.joinToString("<br/>") { p ->
-                            "<code>${esc(p.name ?: "?")}</code>: ${esc(ReduxState.preview(p.value))}"
-                        },
-                    ),
-                )
-            } else {
-                append(section("Valor inicial:", "<code>${esc(ReduxState.preview(value))}</code>"))
-            }
-            if (obj != null && obj.properties.isEmpty() || value?.text == "null") {
-                append(section("Nota:", "Empieza vacío: su contenido lo pone el reducer al procesar una acción (p. ej. la respuesta del backend)."))
-            }
-            val actions = ReduxState.actions(slice)
-            if (actions.isNotEmpty()) append(section("Acciones:", actions.joinToString(", ") { "<code>${esc(it)}</code>" }))
-        }
-        val html = DocumentationMarkup.DEFINITION_START + "<b>state." + esc(path.joinToString(".")) + "</b>" +
-            DocumentationMarkup.DEFINITION_END + DocumentationMarkup.SECTIONS_START + rows + DocumentationMarkup.SECTIONS_END
-        return DocumentationResult.documentation(html)
-    }
-
-    private fun section(header: String, content: String) =
-        DocumentationMarkup.SECTION_HEADER_START + header + DocumentationMarkup.SECTION_SEPARATOR + content +
-            DocumentationMarkup.SECTION_END
-
-    private fun esc(text: String) = StringUtil.escapeXmlEntities(text)
-}
-
 /**
  * Ctrl+clic:
  * - `state.catalog` en `useSelector` → la propiedad en el estado inicial del reducer (o el reducer).
@@ -151,7 +178,8 @@ class ReactPropsGotoDeclarationHandler : GotoDeclarationHandler {
         source ?: return null
         translationKeyTarget(source)?.let { return arrayOf(it) }
         val ref = source.parent as? JSReferenceExpression ?: return null
-        val path = ReduxState.selectorPath(ref)?.takeIf { it.isNotEmpty() } ?: return null
+        val path = (ReduxState.selectorPath(ref) ?: ref.qualifier?.let { ReduxState.valuePath(ref) })
+            ?.takeIf { it.isNotEmpty() } ?: return null
         val slice = ReduxState.slices(ref.project)[path.first()] ?: return null
         val target = if (path.size == 1) slice.reducer ?: slice.key else ReduxState.propertyAt(slice, path.drop(1))
         return target?.let { arrayOf(it) }

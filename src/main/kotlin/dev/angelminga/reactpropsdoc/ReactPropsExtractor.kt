@@ -304,8 +304,6 @@ object ReactPropsExtractor {
                 .filter { it.referenceName?.endsWith("TypeMap") == true }
                 .firstNotNullOfOrNull { ref -> followAliases(ref.resolve())?.containingFile?.let { propsInterfaceIn(it, component.name) } }
             ?: return null
-        val extendsList = propsInterface.extendsList
-        if (extendsList?.text?.contains("SystemProps") == true) return null
 
         fun allMembers(file: PsiFile) = PsiTreeUtil.findChildrenOfType(file, TypeScriptInterface::class.java)
             .flatMap { members(it) }.map { it.name }
@@ -321,6 +319,12 @@ object ReactPropsExtractor {
         return names
     }
 
+    /** Props de estilo de MUI System (`m`, `px`, `bgcolor`, propiedades CSS…), para Box, Typography, Grid, Stack. */
+    val MUI_SYSTEM_PROPS: Set<String> by lazy {
+        ReactPropsExtractor::class.java.getResourceAsStream("/mui-system-props.txt")!!.bufferedReader()
+            .readLines().filter { it.isNotBlank() && !it.startsWith("#") }.toSet()
+    }
+
     /**
      * Agrega las props de los tipos en `extends` (y los de estos, recursivamente). Devuelve false si alguno no
      * se puede resolver: entonces no se conoce el conjunto completo de props y no conviene revisar.
@@ -331,6 +335,11 @@ object ReactPropsExtractor {
         for (ref in PsiTreeUtil.findChildrenOfType(extendsList, JSReferenceExpression::class.java).distinctBy { it.text }) {
             val name = ref.referenceName ?: continue
             if (name in IGNORED_BASES || name == "Theme" || ref.qualifier?.text == "React") continue
+            // MUI System: cientos de props de estilo (lista generada desde csstype y @mui/system)
+            if (name == "SystemProps") {
+                names += MUI_SYSTEM_PROPS
+                continue
+            }
             val target = followAliases(ref.resolve()) ?: return false
             names += typeMembers(target, name).map { it.name }
             val nested = when (target) {

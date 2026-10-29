@@ -68,6 +68,8 @@ class TranslationKeyCompletionContributor : CompletionContributor() {
                 val files = Translations.files(parameters.position.project) ?: return
                 val pageObject = files.page(files.baseLang, page) ?: return
                 val existing = obj.properties.mapNotNull { it.name }.toSet()
+                // Solo las claves de la página (sin las sugerencias genéricas del IDE)
+                result.stopHere()
                 pageObject.propertyList.filter { it.name !in existing }.forEach { property ->
                     result.addElement(
                         LookupElementBuilder.create(property.name)

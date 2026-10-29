@@ -9,9 +9,13 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.json.psi.JsonObject
 import com.intellij.json.psi.JsonStringLiteral
+import com.intellij.lang.ecmascript6.psi.ES6ImportDeclaration
+import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSDestructuringElement
 import com.intellij.lang.javascript.psi.JSDestructuringObject
 import com.intellij.lang.javascript.psi.JSFunction
+import com.intellij.lang.javascript.psi.JSReferenceExpression
+import com.intellij.lang.javascript.psi.JSStatement
 import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
@@ -25,6 +29,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlText
@@ -106,11 +112,13 @@ object TextExtraction {
         return destructurings.firstOrNull()
     }
 
+    /**
+     * Disponible si el componente ya usa `getLanguagePage`, o si se le puede agregar (función con cuerpo `{ … }`).
+     */
     fun isAvailable(element: PsiElement): Boolean {
         if (find(element) == null) return false
-        val target = target(element) ?: return false
-        val files = Translations.files(element.project) ?: return false
-        return files.page(files.baseLang, target.page) != null
+        Translations.files(element.project) ?: return false
+        return target(element) != null || componentFunction(element)?.block != null
     }
 
     /** `¿Quieres enviar esa fotografía?` → `quieresEnviarEsaFotografia` (máx. 4 palabras). */
@@ -123,26 +131,78 @@ object TextExtraction {
     }
 
     /**
+     * Página sugerida para un componente sin `getLanguagePage`: la más usada en los archivos de la misma carpeta,
+     * o la que coincide con una carpeta (`pages/Investment/…` → `investmentPage`).
+     */
+    fun suggestPage(file: PsiFile, files: TranslationFiles): String {
+        val pages = files.pages().map { it.name }.toSet()
+        val dir = file.containingDirectory
+        val nearby = generateSequence(dir) { it.parentDirectory }.take(3)
+            .flatMap { d -> d.files.asSequence().filter { it != file } }
+            .flatMap { f -> Regex("getLanguagePage\\(\\s*['\"](\\w+)['\"]").findAll(f.text).map { it.groupValues[1] } }
+            .filter { it in pages && it != "modalCancel" }
+            .groupingBy { it }.eachCount()
+        nearby.maxByOrNull { it.value }?.let { return it.key }
+        generateSequence(dir) { it.parentDirectory }.take(6).forEach { d ->
+            val candidate = d.name.replaceFirstChar(Char::lowercase) + "Page"
+            if (candidate in pages) return candidate
+        }
+        return ""
+    }
+
+    /** Import de `useTranslateContext` que ya usa la misma app (p. ej. `MFComponents/ComponentUseTranslateContext`). */
+    private fun translateContextImport(file: PsiFile): String {
+        val path = file.virtualFile?.path ?: return DEFAULT_TRANSLATE_IMPORT
+        val app = path.substringBefore("/src/", "")
+        val sources = mutableListOf<String>()
+        PsiSearchHelper.getInstance(file.project).processAllFilesWithWord("useTranslateContext", GlobalSearchScope.projectScope(file.project), { f ->
+            if (app.isNotEmpty() && f.virtualFile?.path?.startsWith("$app/src/") == true) {
+                Regex("import\\s*\\{[^}]*\\buseTranslateContext\\b[^}]*\\}\\s*from\\s*['\"]([^'\"]+)['\"]").find(f.text)
+                    ?.let { sources += it.groupValues[1] }
+            }
+            true
+        }, true)
+        return sources.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: DEFAULT_TRANSLATE_IMPORT
+    }
+
+    private const val DEFAULT_TRANSLATE_IMPORT = "MFComponents/ComponentUseTranslateContext"
+
+    /**
      * Pide la clave (sugerida a partir del texto) y extrae: agrega la clave al idioma base (y marcada a los demás),
      * reemplaza el texto por la variable y la agrega a la desestructuración de `getLanguagePage`.
+     * Si el componente no usa `getLanguagePage`, primero pide la página y agrega `useTranslateContext` y la llamada.
      */
     fun perform(project: Project, element: PsiElement) {
         val hardcoded = find(element) ?: return
-        val target = target(element) ?: return
         val files = Translations.files(project) ?: return
-        val basePage = files.page(files.baseLang, target.page) ?: return
         val function = componentFunction(element) ?: return
+        val existingTarget = target(element)
+        val jsFile = element.containingFile
+
+        val page = existingTarget?.page ?: Messages.showEditableChooseDialog(
+            "El componente aún no usa traducciones.\nPágina de ${files.base.name} (elige una o escribe una nueva):",
+            "Extraer a traducciones",
+            null,
+            files.pages().map { it.name }.toTypedArray(),
+            suggestPage(jsFile, files),
+            object : InputValidator {
+                override fun checkInput(input: String?) = input != null && IDENTIFIER.matches(input.trim())
+                override fun canClose(input: String?) = checkInput(input)
+            },
+        )?.trim() ?: return
+        val target = existingTarget ?: TranslationTarget(page, null, null)
+        val basePage = files.page(files.baseLang, page)
         val usedNames = PsiTreeUtil.findChildrenOfType(function, JSVariable::class.java).mapNotNull { it.name }.toSet()
         val destructured = target.destructuring?.properties?.mapNotNull { it.name }.orEmpty().toSet()
 
         // Válida si es un identificador y, si ya existe en la página, tiene el mismo texto
         fun conflict(key: String): String? {
-            if (!Regex("^[A-Za-z_][A-Za-z0-9_]*$").matches(key)) return "No es un nombre válido"
-            val existing = basePage.findProperty(key)?.value
+            if (!IDENTIFIER.matches(key)) return "No es un nombre válido"
+            val existing = basePage?.findProperty(key)?.value
             if (existing != null && (existing as? JsonStringLiteral)?.value != hardcoded.text) {
-                return "'$key' ya existe en '${target.page}' con otro texto"
+                return "'$key' ya existe en '$page' con otro texto"
             }
-            if (target.destructuring != null && key in usedNames && key !in destructured) {
+            if (target.variable == null && key in usedNames && key !in destructured) {
                 return "Ya hay una variable '$key' en el componente"
             }
             return null
@@ -154,7 +214,7 @@ object TextExtraction {
 
         val key = Messages.showInputDialog(
             project,
-            "Clave en '${target.page}' (${files.base.name}) para:\n\"${hardcoded.text}\"",
+            "Clave en '$page' (${files.base.name}) para:\n\"${hardcoded.text}\"",
             "Extraer a traducciones",
             null,
             suggestion,
@@ -164,41 +224,102 @@ object TextExtraction {
             },
         )?.trim() ?: return
 
-        val jsFile = element.containingFile
+        val importSource = if (existingTarget == null) translateContextImport(jsFile) else null
         val jsonFiles = files.files.values.toList()
         WriteCommandAction.runWriteCommandAction(project, "Extraer a traducciones", null, {
-            apply(jsFile, hardcoded, target, key, files)
+            apply(jsFile, function, hardcoded, target, key, files, importSource)
         }, *(listOf<PsiFile>(jsFile) + jsonFiles).toTypedArray())
     }
 
-    private fun apply(jsFile: PsiFile, hardcoded: HardcodedText, target: TranslationTarget, key: String, files: TranslationFiles) {
-        // 1) JSON: idioma base con el texto; los demás con el texto marcado (si la página existe y no tiene la clave)
+    private val IDENTIFIER = Regex("^[A-Za-z_][A-Za-z0-9_]*$")
+
+    private fun apply(
+        jsFile: PsiFile,
+        function: JSFunction,
+        hardcoded: HardcodedText,
+        target: TranslationTarget,
+        key: String,
+        files: TranslationFiles,
+        importSource: String?,
+    ) {
+        // 1) JSON: idioma base con el texto; los demás con el texto marcado. Si la página no existe, se crea.
         val escaped = StringUtil.escapeStringCharacters(hardcoded.text)
         val prefix = Translations.copyPrefix(files)
         files.files.keys.forEach { lang ->
-            val page: JsonObject = files.page(lang, target.page) ?: return@forEach
-            if (page.findProperty(key) != null) return@forEach
             val value = if (lang == files.baseLang) escaped else prefix + escaped
+            val page: JsonObject? = files.page(lang, target.page)
+            if (page == null) {
+                files.root(lang)?.let { Translations.appendEntries(it, listOf("\"${target.page}\": { \"$key\": \"$value\" }")) }
+                return@forEach
+            }
+            if (page.findProperty(key) != null) return@forEach
             Translations.appendEntries(page, listOf("\"$key\": \"$value\""))
         }
 
-        // 2) JS: reemplazar el texto y, si hace falta, agregar la clave a la desestructuración
+        // 2) JS: reemplazar el texto; agregar la clave a la desestructuración (o crear las llamadas si no existen)
         val documents = PsiDocumentManager.getInstance(jsFile.project)
         val document = documents.getDocument(jsFile) ?: return
         val expression = target.variable?.let { "$it.$key" } ?: key
-        val edits = mutableListOf(hardcoded.range.startOffset to (hardcoded.range to "{$expression}"))
-        target.destructuring?.let { obj ->
+        val edits = mutableListOf(hardcoded.range to "{$expression}")
+        val obj = target.destructuring
+        if (obj != null) {
             if (obj.properties.none { it.name == key }) {
                 val last = obj.properties.lastOrNull()
-                val insertion = if (last != null) TextRange.from(last.textRange.endOffset, 0) to ", $key"
+                edits += if (last != null) TextRange.from(last.textRange.endOffset, 0) to ", $key"
                 else TextRange.from(obj.textRange.startOffset + 1, 0) to " $key "
-                edits += insertion.first.startOffset to insertion
             }
+        } else if (target.variable == null) {
+            edits += setupEdits(jsFile, function, target.page, key, importSource)
         }
-        edits.sortedByDescending { it.first }.forEach { (_, edit) ->
-            document.replaceString(edit.first.startOffset, edit.first.endOffset, edit.second)
+        edits.sortedByDescending { it.first.startOffset }.forEach { (range, text) ->
+            document.replaceString(range.startOffset, range.endOffset, text)
         }
         documents.commitDocument(document)
+    }
+
+    /**
+     * Componente sin traducciones: `const { getLanguagePage } = useTranslateContext()` (si no existe),
+     * `const { clave } = getLanguagePage('página')` y el import de `useTranslateContext`.
+     */
+    private fun setupEdits(jsFile: PsiFile, function: JSFunction, page: String, key: String, importSource: String?): List<Pair<TextRange, String>> {
+        val block = function.block ?: return emptyList()
+        val text = jsFile.text
+        val firstStatement = PsiTreeUtil.getChildOfType(block, JSStatement::class.java)
+        val indent = firstStatement?.let { lineIndent(text, it.textRange.startOffset) }
+            ?: (lineIndent(text, function.textRange.startOffset) + if ("\n\t" in text) "\t" else "    ")
+        val pageCall = "const { $key } = getLanguagePage('$page')"
+        val edits = mutableListOf<Pair<TextRange, String>>()
+
+        // ¿Ya hay `const { … } = useTranslateContext()` en el componente?
+        val context = PsiTreeUtil.findChildrenOfType(function, JSDestructuringElement::class.java).firstOrNull {
+            ((it.initializer as? JSCallExpression)?.methodExpression as? JSReferenceExpression)?.referenceName == "useTranslateContext"
+        }
+        if (context != null) {
+            val contextObj = context.target as? JSDestructuringObject
+            if (contextObj != null && contextObj.properties.none { it.name == "getLanguagePage" }) {
+                val last = contextObj.properties.lastOrNull()
+                edits += if (last != null) TextRange.from(last.textRange.endOffset, 0) to ", getLanguagePage"
+                else TextRange.from(contextObj.textRange.startOffset + 1, 0) to " getLanguagePage "
+            }
+            val statement = PsiTreeUtil.getParentOfType(context, JSStatement::class.java) ?: return edits
+            edits += TextRange.from(statement.textRange.endOffset, 0) to "\n$indent$pageCall"
+        } else {
+            val brace = block.firstChild.textRange.endOffset
+            edits += TextRange.from(brace, 0) to "\n${indent}const { getLanguagePage } = useTranslateContext()\n$indent$pageCall\n"
+        }
+
+        if (importSource != null && !Regex("import\\s*\\{[^}]*\\buseTranslateContext\\b").containsMatchIn(text)) {
+            val lastImport = PsiTreeUtil.findChildrenOfType(jsFile, ES6ImportDeclaration::class.java).lastOrNull()
+            val offset = lastImport?.textRange?.endOffset ?: 0
+            val line = "import { useTranslateContext } from '$importSource'"
+            edits += TextRange.from(offset, 0) to if (lastImport != null) "\n$line" else "$line\n"
+        }
+        return edits
+    }
+
+    private fun lineIndent(text: String, offset: Int): String {
+        val lineStart = text.lastIndexOf('\n', offset - 1) + 1
+        return text.substring(lineStart).takeWhile { it == ' ' || it == '\t' }
     }
 }
 

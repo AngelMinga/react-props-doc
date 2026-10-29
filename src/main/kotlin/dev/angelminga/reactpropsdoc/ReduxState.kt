@@ -10,6 +10,7 @@ import com.intellij.lang.javascript.psi.JSObjectLiteralExpression
 import com.intellij.lang.javascript.psi.JSParameter
 import com.intellij.lang.javascript.psi.JSProperty
 import com.intellij.lang.javascript.psi.JSReferenceExpression
+import com.intellij.lang.javascript.psi.JSReturnStatement
 import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -149,11 +150,59 @@ object ReduxState {
         val rootName = current.referenceName ?: return null
         val function = PsiTreeUtil.getParentOfType(ref, JSFunction::class.java) ?: return null
         val param = function.parameters.firstOrNull() as? JSParameter ?: return null
-        if (param.name != rootName) return null
-        val call = (function.parent as? JSArgumentList)?.parent as? JSCallExpression ?: return null
-        if ((call.methodExpression as? JSReferenceExpression)?.referenceName !in SELECTOR_HOOKS) return null
+        if (param.name != rootName || !isSelector(function)) return null
         return path.reversed()
     }
+
+    /**
+     * Función selectora: argumento de `useSelector(…)` o declarada aparte con nombre de selector
+     * (`const selectCatalog = state => state.catalog`, `function catalogSelector(state)`).
+     */
+    fun isSelector(function: JSFunction): Boolean {
+        val call = (function.parent as? JSArgumentList)?.parent as? JSCallExpression
+        if ((call?.methodExpression as? JSReferenceExpression)?.referenceName in SELECTOR_HOOKS) return true
+        val name = function.name ?: (function.parent as? JSVariable)?.name ?: return false
+        return SELECTOR_NAME.matches(name)
+    }
+
+    private val SELECTOR_NAME = Regex("^select[A-Z0-9].*|.*Selector$")
+
+    /** Ruta que devuelve una función selectora: `state => state.catalog.data` → `["catalog", "data"]`. */
+    private fun selectorResultPath(function: JSFunction): List<String>? {
+        val paramName = (function.parameters.firstOrNull() as? JSParameter)?.name ?: return null
+        val body = if (function.block == null) function.children.filterIsInstance<JSExpression>().lastOrNull()
+        else PsiTreeUtil.findChildrenOfType(function, JSReturnStatement::class.java)
+            .firstOrNull { PsiTreeUtil.getParentOfType(it, JSFunction::class.java) == function }?.expression
+        val path = mutableListOf<String>()
+        var current = Translations.unwrapFallback(body) as? JSReferenceExpression ?: return null
+        while (true) {
+            val qualifier = current.qualifier ?: break
+            path += current.referenceName ?: return null
+            current = qualifier as? JSReferenceExpression ?: return null
+        }
+        return if (current.referenceName == paramName) path.reversed() else null
+    }
+
+    /** `useSelector(state => state.catalog)` o `useSelector(selectCatalog)` → `["catalog"]`. */
+    fun selectorCallPath(call: JSCallExpression): List<String>? {
+        if ((call.methodExpression as? JSReferenceExpression)?.referenceName !in SELECTOR_HOOKS) return null
+        val function = when (val arg = call.argumentList?.arguments?.firstOrNull()) {
+            is JSFunction -> arg
+            is JSReferenceExpression -> ReactPropsExtractor.findDeclaration(arg.resolve())?.function
+            else -> null
+        } ?: return null
+        return selectorResultPath(function)?.takeIf { it.isNotEmpty() }
+    }
+
+    private val reduxPaths = ValuePaths(::selectorCallPath)
+
+    /**
+     * Ruta en el estado de un valor que viene de `useSelector` (fuera del selector):
+     * `const catalogState = useSelector(state => state.catalog)` y `catalogState.data.entity` → `["catalog", "data", "entity"]`.
+     */
+    fun valuePath(expr: JSExpression?): List<String>? = reduxPaths.expressionPath(expr)
+
+    fun pathOfElement(element: PsiElement?): List<String>? = reduxPaths.pathOfElement(element)
 
     /** Valor en `path` (sin el nombre de la parte) dentro del estado inicial. */
     fun valueAt(slice: ReduxSlice, path: List<String>): JSExpression? {

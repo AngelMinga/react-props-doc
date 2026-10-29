@@ -32,7 +32,7 @@
                 order="first"
                 implementation="dev.angelminga.reactpropsdoc.ReactPropsDocumentationTargetProvider"/>
         <!-- Redux: useSelector(state => state.x) -->
-        <completion.contributor language="JavaScript"
+        <completion.contributor language="JavaScript" order="first"
                                 implementationClass="dev.angelminga.reactpropsdoc.ReduxCompletionContributor"/>
         <platform.backend.documentation.targetProvider
                 implementation="dev.angelminga.reactpropsdoc.ReduxDocumentationTargetProvider"/>
@@ -45,7 +45,7 @@
         <!-- Traducciones: Ctrl+clic / autocompletado de páginas y claves de getLanguagePage('…') -->
         <psi.referenceContributor language="JavaScript"
                                   implementation="dev.angelminga.reactpropsdoc.TranslationReferenceContributor"/>
-        <completion.contributor language="JavaScript"
+        <completion.contributor language="JavaScript" order="first"
                                 implementationClass="dev.angelminga.reactpropsdoc.TranslationKeyCompletionContributor"/>
 
         <localInspection language="JavaScript" shortName="ReactPropsDocHookDestructuring"
