@@ -1,0 +1,23 @@
+<idea-plugin>
+    <id>dev.angelminga.react-props-doc</id>
+    <name>React Props Doc</name>
+    <vendor>Angel Minga</vendor>
+    <description><![CDATA[
+        Muestra las props de un componente React (desde <code>propTypes</code>, <code>defaultProps</code>
+        y la desestructuración de props) en la documentación al pasar el mouse sobre un tag JSX,
+        sin tener que agregar JSDoc.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Registrado en el dialecto para ejecutarse antes que los proveedores de "JavaScript" (incluido el de React) -->
+        <lang.documentationProvider language="ECMAScript 6"
+                                    order="first"
+                                    implementationClass="dev.angelminga.reactpropsdoc.ReactPropsDocumentationProvider"/>
+        <lang.documentationProvider language="JavaScript"
+                                    order="first"
+                                    implementationClass="dev.angelminga.reactpropsdoc.ReactPropsDocumentationProvider"/>
+    </extensions>
+</idea-plugin>
