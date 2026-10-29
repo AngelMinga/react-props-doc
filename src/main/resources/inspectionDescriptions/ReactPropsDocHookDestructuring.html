@@ -1,0 +1,8 @@
+<html>
+<body>
+Reporta valores desestructurados de un hook propio que el hook no devuelve, por ejemplo
+<code>const { registerBeneficiary } = useOTPCreditPayment()</code> cuando el hook solo devuelve
+<code>{ addPayment, dataOTP }</code>. Esos valores llegan como <code>undefined</code>.
+<p>Solo se analiza cuando todos los <code>return</code> del hook devuelven un objeto literal.</p>
+</body>
+</html>

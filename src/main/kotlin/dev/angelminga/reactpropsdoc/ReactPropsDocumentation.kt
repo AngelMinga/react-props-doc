@@ -1,6 +1,9 @@
 package dev.angelminga.reactpropsdoc
 
+import com.intellij.json.psi.JsonProperty
 import com.intellij.lang.LanguageDocumentation
+import com.intellij.lang.javascript.psi.JSDestructuringProperty
+import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.model.Pointer
 import com.intellij.openapi.util.text.StringUtil
@@ -67,6 +70,12 @@ object ReactPropsDocumentation {
      * Con `baseOnly` solo comprueba si aplica (devuelve "" sin llamar a los demás proveedores).
      */
     fun generate(element: PsiElement, originalElement: PsiElement?, baseOnly: Boolean = false): String? {
+        if (options.showTranslations) {
+            translationPath(element)?.let { path ->
+                return if (baseOnly) "" else translationDoc(element, originalElement, path)
+            }
+        }
+
         ReactPropsExtractor.findComponent(element)
             ?.takeUnless { ReactPropsExtractor.hasJsDocProps(it) }
             ?.let { component ->
@@ -88,6 +97,34 @@ object ReactPropsDocumentation {
             }
         }
         return null
+    }
+
+    /** Ruta `[página, clave…]` si el elemento es una clave de `getLanguagePage(…)` o una propiedad del JSON de traducciones. */
+    private fun translationPath(element: PsiElement): List<String>? {
+        if (element is JsonProperty) {
+            val (_, path) = Translations.pathOf(element) ?: return null
+            return path
+        }
+        if (element !is JSVariable && element !is JSDestructuringProperty) return null
+        val usage = Translations.keyUsage(element) ?: return null
+        val files = Translations.files(element.project) ?: return null
+        if (files.page(files.baseLang, usage.page)?.findProperty(usage.key!!) == null) return null
+        return listOf(usage.page, usage.key)
+    }
+
+    private fun translationDoc(element: PsiElement, original: PsiElement?, path: List<String>): String {
+        val files = Translations.files(element.project) ?: return ""
+        val rows = buildString {
+            append(section("Página:", "<code>${esc(path.first())}</code>"))
+            files.files.keys.forEach { lang ->
+                val value = Translations.preview(files.valueAt(lang, path))
+                append(section("$lang:", value?.let(::esc) ?: "⚠ <b>falta</b>"))
+            }
+        }
+        val title = if (path.size == 1) path.first() else path.drop(1).joinToString(".")
+        val definition = DocumentationMarkup.DEFINITION_START + "<b>" + esc(title) + "</b>" +
+            DocumentationMarkup.DEFINITION_END
+        return definition + DocumentationMarkup.SECTIONS_START + rows + DocumentationMarkup.SECTIONS_END
     }
 
     private fun componentDoc(element: PsiElement, original: PsiElement?, component: ReactComponent, props: ComponentProps): String {

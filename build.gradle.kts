@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.angelminga"
-version = "1.4.0"
+version = "1.5.0"
 
 repositories {
     mavenCentral()
@@ -18,6 +18,7 @@ dependencies {
         local(providers.gradleProperty("ideaPath"))
         bundledPlugin("JavaScript")
         bundledPlugin("com.intellij.xml")
+        bundledPlugin("com.intellij.modules.json")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
     }
     testImplementation("junit:junit:4.13.2")

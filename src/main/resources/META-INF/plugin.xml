@@ -10,19 +10,42 @@
         <ul>
           <li>Marca props usadas sin declarar en <code>propTypes</code> y declaradas que no se usan.</li>
           <li>Hover sobre una prop: si es requerida, su valor por defecto y sus valores posibles.</li>
-          <li>Hooks: parámetros y lo que devuelven.</li>
+          <li>Hooks: parámetros y lo que devuelven, y aviso al desestructurar un valor que el hook no devuelve.</li>
+          <li>Traducciones (<code>getLanguagePage('página')</code>): autocompletado y Ctrl+clic de páginas, autocompletado
+              de claves, textos por idioma al pasar el mouse, avisos de páginas/claves inexistentes o faltantes en algún
+              idioma, y corrección rápida que las copia desde el idioma base.</li>
           <li>Ajustes en Settings → Tools → React Props Doc.</li>
         </ul>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>
+    <depends>com.intellij.modules.json</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- API nueva de documentación: se consulta antes que los lang.documentationProvider (incluido el de React) -->
         <platform.backend.documentation.psiTargetProvider
                 order="first"
                 implementation="dev.angelminga.reactpropsdoc.ReactPropsDocumentationTargetProvider"/>
+        <!-- Traducciones: Ctrl+clic / autocompletado de páginas y claves de getLanguagePage('…') -->
+        <psi.referenceContributor language="JavaScript"
+                                  implementation="dev.angelminga.reactpropsdoc.TranslationReferenceContributor"/>
+        <completion.contributor language="JavaScript"
+                                implementationClass="dev.angelminga.reactpropsdoc.TranslationKeyCompletionContributor"/>
+
+        <localInspection language="JavaScript" shortName="ReactPropsDocHookDestructuring"
+                         displayName="Valor desestructurado que el hook no devuelve"
+                         groupName="React Props Doc" enabledByDefault="true" level="WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.HookDestructuringInspection"/>
+        <localInspection language="JavaScript" shortName="ReactPropsDocTranslationKey"
+                         displayName="Página o clave de traducción inexistente o incompleta"
+                         groupName="React Props Doc" enabledByDefault="true" level="WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.TranslationKeyInspection"/>
+        <localInspection language="JSON" shortName="ReactPropsDocTranslationFile"
+                         displayName="Archivo de traducción con páginas o claves faltantes"
+                         groupName="React Props Doc" enabledByDefault="true" level="WARNING"
+                         implementationClass="dev.angelminga.reactpropsdoc.TranslationFileInspection"/>
+
         <applicationConfigurable parentId="tools"
                                  id="dev.angelminga.reactpropsdoc.settings"
                                  displayName="React Props Doc"
