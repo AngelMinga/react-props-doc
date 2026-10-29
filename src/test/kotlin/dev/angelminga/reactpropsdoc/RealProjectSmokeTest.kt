@@ -59,7 +59,7 @@ class RealProjectSmokeTest : BasePlatformTestCase() {
 
         // Inspecciones nuevas sobre todo el proyecto
         val context = InspectionManager.getInstance(project).createNewGlobalContext() as GlobalInspectionContext
-        val tools = listOf(HookDestructuringInspection(), TranslationKeyInspection(), TranslationFileInspection())
+        val tools = listOf(HookDestructuringInspection(), TranslationKeyInspection(), TranslationFileInspection(), UndeclaredPropInspection())
         tools.forEach { tool ->
             val wrapper = LocalInspectionToolWrapper(tool)
             val found = allFiles.flatMap { file ->
