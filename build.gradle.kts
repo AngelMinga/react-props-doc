@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.angelminga"
-version = "1.11.0"
+version = "1.11.1"
 
 repositories {
     mavenCentral()
@@ -17,7 +17,9 @@ dependencies {
     intellijPlatform {
         local(providers.gradleProperty("ideaPath"))
         bundledPlugin("JavaScript")
-        bundledPlugin("com.intellij.xml")
+        // En IntelliJ IDEA el XML es un plugin; en WebStorm viene dentro del núcleo (no hay plugin que agregar)
+        val productInfo = file(providers.gradleProperty("ideaPath").get() + "/Contents/Resources/product-info.json")
+        if (!productInfo.exists() || productInfo.readText().contains("\"com.intellij.xml\"")) bundledPlugin("com.intellij.xml")
         bundledPlugin("com.intellij.modules.json")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
     }
@@ -32,7 +34,7 @@ kotlin {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "263"
+            sinceBuild = "262"
             untilBuild = provider { null }
         }
     }

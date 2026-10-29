@@ -4,8 +4,8 @@ Plugin para IntelliJ IDEA que muestra y revisa las props de componentes React si
 ayuda con las traducciones de páginas (`getLanguagePage('página')`). Nació para el monorepo *bancapersonas*
 (React + Module Federation + MUI), pero funciona en cualquier proyecto React con `propTypes` o MUI.
 
-- **IDE:** IntelliJ IDEA Ultimate 2026.3 o superior (requiere los plugins JavaScript y JSON incluidos).
-- **Versión actual:** 1.11.0
+- **IDE:** WebStorm 2026.2 o IntelliJ IDEA Ultimate 2026.2 o superior (build 262+; requiere los plugins JavaScript y JSON incluidos).
+- **Versión actual:** 1.11.1
 
 ## Instalación
 
@@ -128,12 +128,19 @@ python3 tools/generate_sx_data.py <csstype/index.d.ts> <@mui/system/styleFunctio
 ```
 
 - Compila contra el IntelliJ instalado (`ideaPath` en `gradle.properties`) usando el JBR 25 del propio IDE.
+- **Zip para publicar/instalar: compilarlo contra WebStorm 2026.2** (la versión más antigua soportada) y probarlo ahí:
+  ```bash
+  W="$HOME/Applications/WebStorm.app"
+  ./gradlew test buildPlugin -PideaPath="$W" -Porg.gradle.java.installations.paths="$W/Contents/jbr/Contents/Home"
+  ```
+  En WebStorm el XML viene en el núcleo (no es plugin): `build.gradle.kts` solo agrega `com.intellij.xml` si el IDE lo trae.
 - La documentación usa la API `platform.backend.documentation.psiTargetProvider`, que IntelliJ consulta antes que
   los `lang.documentationProvider` (el proveedor de React respondería primero).
 
 ## Historial
 | Versión | Cambios |
 |---|---|
+| 1.11.1 | Compatible con WebStorm 2026.2 (since-build 262); las 125 pruebas pasan en WebStorm e IntelliJ. |
 | 1.11.0 | Hover de `sx`/`style`: tipo del atributo y tipo + valor de cada clave escrita. |
 | 1.10.0 | `sx`/`style`: autocompletado de claves y valores, hover con valores y atajos de MUI, aviso de claves desconocidas. |
 | 1.9.0 | Redux: forma real deducida de los usos, variables y selectores aparte; MUI System revisado; extraer texto en componentes sin traducciones; autocompletado sin lista genérica. |
