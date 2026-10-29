@@ -38,7 +38,7 @@ data class ReactProp(
 /** Props que un componente de librería hereda de otro tipo (p. ej. Card ← Paper). */
 data class InheritedProps(
     val source: String,
-    val names: List<String>,
+    val props: List<ReactProp>,
     val note: String? = null,
     val header: String = "Heredadas de $source:",
 )
@@ -198,22 +198,12 @@ object ReactPropsExtractor {
                 }
             ?: return ComponentProps(emptyList())
 
-        val own = propsInterface.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>()
-            .mapNotNull { member ->
-                val name = member.name ?: return@mapNotNull null
-                val doc = JsDoc.of(member)
-                ReactProp(
-                    name = name,
-                    type = member.typeDeclaration?.text?.compact()?.let(::truncate),
-                    required = !member.isOptional,
-                    defaultValue = doc?.defaultValue,
-                    description = doc?.summary,
-                )
-            }
+        val own = members(propsInterface)
         val inherited = if (ReactPropsDocSettings.options.showInherited) {
             val ownNames = own.map { it.name }.toSet()
-            extendedComponentProps(component, ownNames) + inheritedProps(propsInterface, ownNames) +
-                listOfNotNull(htmlAttributes(component))
+            val extended = extendedComponentProps(component, ownNames)
+            extended + inheritedProps(propsInterface, ownNames) +
+                listOfNotNull(htmlAttributes(component, isButtonBase = extended.any { it.source == "ButtonBase" }))
         } else {
             emptyList()
         }
@@ -230,35 +220,71 @@ object ReactPropsExtractor {
             .mapNotNull { ref ->
                 val base = ref.referenceName!!.removePrefix("Extend")
                 val file = followAliases(ref.resolve())?.containingFile ?: return@mapNotNull null
-                val names = propsInterfaceIn(file, base)?.body?.typeMembers.orEmpty()
-                    .filterIsInstance<TypeScriptPropertySignature>().mapNotNull { it.name }
-                    .filter { it !in ownNames }
-                if (names.isEmpty()) null else InheritedProps(base, names.take(MAX_INHERITED))
+                val props = propsInterfaceIn(file, base)?.let(::members).orEmpty().filter { it.name !in ownNames }
+                if (props.isEmpty()) null else InheritedProps(base, props.take(MAX_INHERITED))
+            }
+
+    /** Props de una interfaz de `.d.ts` con su tipo, si es requerida, `@default` y descripción. */
+    private fun members(propsInterface: TypeScriptInterface): List<ReactProp> =
+        propsInterface.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>()
+            .mapNotNull { member ->
+                val name = member.name ?: return@mapNotNull null
+                val doc = JsDoc.of(member)
+                ReactProp(
+                    name = name,
+                    type = member.typeDeclaration?.text?.compact()?.let(::truncate),
+                    required = !member.isOptional,
+                    defaultValue = doc?.defaultValue,
+                    description = doc?.summary,
+                )
             }
 
     /** Elemento HTML raíz (`RootComponent extends React.ElementType = 'button'`) y sus atributos más útiles. */
-    private fun htmlAttributes(component: ReactComponent): InheritedProps? {
+    private fun htmlAttributes(component: ReactComponent, isButtonBase: Boolean): InheritedProps? {
         val root = Regex("RootComponent extends React\\.ElementType = '([a-z][a-z0-9]*)'").find(component.file.text)
             ?.groupValues?.get(1)
             ?: Regex("TypeMap<\\{},\\s*'([a-z][a-z0-9]*)'").find(component.declaration.text)?.groupValues?.get(1)
             ?: return null
+        var props = HTML_ATTRIBUTES[root] ?: COMMON_HTML_ATTRIBUTES
+        // ButtonBase pone type="button" si no se indica (en HTML el valor por defecto es "submit")
+        if (isButtonBase) props = props.map { if (it.name == "type") it.copy(defaultValue = "'button'") else it }
         return InheritedProps(
             source = "<$root>",
-            names = HTML_ATTRIBUTES[root] ?: COMMON_HTML_ATTRIBUTES,
+            props = props,
             note = "y demás atributos HTML / aria-*",
             header = "Atributos HTML de <$root>:",
         )
     }
 
-    private val COMMON_HTML_ATTRIBUTES = listOf("id", "className", "style", "title", "role", "onClick", "aria-label")
+    // Tipos según @types/react (los manejadores de eventos se muestran como `(event) => void`)
+    private fun attr(name: String, type: String) = ReactProp(name, type)
+    private const val HANDLER = "(event) => void"
+
+    private val COMMON_HTML_ATTRIBUTES = listOf(
+        attr("id", "string"), attr("className", "string"), attr("style", "CSSProperties"),
+        attr("title", "string"), attr("role", "AriaRole"), attr("onClick", HANDLER), attr("aria-label", "string"),
+    )
 
     private val HTML_ATTRIBUTES = mapOf(
-        "button" to listOf("type (\"submit\" | \"reset\" | \"button\")", "name", "value", "form", "onClick", "onFocus", "onBlur") +
-            COMMON_HTML_ATTRIBUTES.filter { it != "onClick" },
-        "a" to listOf("href", "target", "rel", "download") + COMMON_HTML_ATTRIBUTES,
-        "input" to listOf("type", "name", "value", "placeholder", "onChange", "maxLength", "autoComplete") + COMMON_HTML_ATTRIBUTES,
-        "form" to listOf("onSubmit", "action", "method", "noValidate") + COMMON_HTML_ATTRIBUTES,
-        "img" to listOf("src", "alt", "width", "height", "loading") + COMMON_HTML_ATTRIBUTES,
+        "button" to listOf(
+            attr("type", "\"submit\" | \"reset\" | \"button\""), attr("name", "string"),
+            attr("value", "string | number | readonly string[]"), attr("form", "string"),
+            attr("onClick", HANDLER), attr("onFocus", HANDLER), attr("onBlur", HANDLER),
+        ) + COMMON_HTML_ATTRIBUTES.filter { it.name != "onClick" },
+        "a" to listOf(
+            attr("href", "string"), attr("target", "\"_blank\" | \"_self\" | string"), attr("rel", "string"), attr("download", "any"),
+        ) + COMMON_HTML_ATTRIBUTES,
+        "input" to listOf(
+            attr("type", "string"), attr("name", "string"), attr("value", "string | number | readonly string[]"),
+            attr("placeholder", "string"), attr("onChange", HANDLER), attr("maxLength", "number"), attr("autoComplete", "string"),
+        ) + COMMON_HTML_ATTRIBUTES,
+        "form" to listOf(
+            attr("onSubmit", HANDLER), attr("action", "string"), attr("method", "string"), attr("noValidate", "boolean"),
+        ) + COMMON_HTML_ATTRIBUTES,
+        "img" to listOf(
+            attr("src", "string"), attr("alt", "string"), attr("width", "number | string"), attr("height", "number | string"),
+            attr("loading", "\"eager\" | \"lazy\""),
+        ) + COMMON_HTML_ATTRIBUTES,
     )
 
     private fun propsInterfaceIn(file: PsiFile, base: String): TypeScriptInterface? {
@@ -279,20 +305,16 @@ object ReactPropsExtractor {
                         "MUI System", emptyList(), "props de estilo: m, p, display, color, bgcolor, width…",
                     )
                     else -> {
-                        val names = typeMembers(followAliases(ref.resolve()), name)
-                            .filter { it !in ownNames }
-                        if (names.isEmpty()) null
-                        else InheritedProps(name.removeSuffix("OwnProps").removeSuffix("Props"), names.take(MAX_INHERITED))
+                        val props = typeMembers(followAliases(ref.resolve()), name).filter { it.name !in ownNames }
+                        if (props.isEmpty()) null
+                        else InheritedProps(name.removeSuffix("OwnProps").removeSuffix("Props"), props.take(MAX_INHERITED))
                     }
                 }
             }
     }
 
-    /** Nombres de las props de un tipo resuelto: interfaz propia del componente, la interfaz misma o la del alias. */
-    private fun typeMembers(target: PsiElement?, name: String): List<String> {
-        fun members(i: TypeScriptInterface) =
-            i.body?.typeMembers.orEmpty().filterIsInstance<TypeScriptPropertySignature>().mapNotNull { it.name }
-
+    /** Props de un tipo resuelto: interfaz propia del componente, la interfaz misma o la del alias. */
+    private fun typeMembers(target: PsiElement?, name: String): List<ReactProp> {
         val file = target?.containingFile ?: return emptyList()
         val base = name.removeSuffix("OwnProps").removeSuffix("Props")
         if (name.endsWith("Props")) propsInterfaceIn(file, base)?.let { return members(it) }

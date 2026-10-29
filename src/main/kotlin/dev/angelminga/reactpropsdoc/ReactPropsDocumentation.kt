@@ -149,8 +149,8 @@ object ReactPropsDocumentation {
             if (props.own.isNotEmpty()) add(section("Props (${props.own.size}):", props.own.joinToString("<br/>", transform = ::propRow)))
             props.inherited.forEach { group ->
                 val content = buildString {
-                    if (group.names.isNotEmpty()) append(group.names.joinToString(", ") { "<code>${esc(it)}</code>" })
-                    group.note?.let { if (group.names.isEmpty()) append(esc(it)) else append(" <i>").append(esc(it)).append("</i>") }
+                    if (group.props.isNotEmpty()) append(group.props.joinToString("<br/>", transform = ::inheritedRow))
+                    group.note?.let { if (group.props.isEmpty()) append(esc(it)) else append("<br/><i>").append(esc(it)).append("</i>") }
                 }
                 add(section(esc(group.header), content))
             }
@@ -235,6 +235,14 @@ object ReactPropsDocumentation {
         if (options.showDescriptions) {
             p.description?.let { append("<br/>&nbsp;&nbsp;&nbsp;&nbsp;<i>").append(formatDescription(it)).append("</i>") }
         }
+    }
+
+    /** Fila compacta (sin descripción) para props heredadas: `nombre: tipo (= defecto)`. */
+    private fun inheritedRow(p: ReactProp) = buildString {
+        append("<code>").append(esc(p.name)).append("</code>")
+        p.type?.let { append(": ").append(esc(it)) }
+        if (p.required) append(" — <b>requerida</b>")
+        p.defaultValue?.let { append(" (= <code>").append(esc(it)).append("</code>)") }
     }
 
     private fun hookValueRow(v: HookValue) =

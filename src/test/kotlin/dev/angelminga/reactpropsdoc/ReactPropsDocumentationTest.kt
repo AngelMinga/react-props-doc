@@ -197,7 +197,12 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
         assertTrue(doc, doc.contains("<code>disableRipple</code>"))
         assertFalse("children ya es prop propia de Button", doc.substringAfter("Heredadas de ButtonBase:").substringBefore("</td>").contains("<code>children</code>"))
         assertTrue(doc, doc.contains("Atributos HTML de &lt;button&gt;:"))
-        assertTrue(doc, doc.contains("<code>type (&quot;submit&quot; | &quot;reset&quot; | &quot;button&quot;)</code>"))
+        assertTrue(doc, doc.contains("<code>disableRipple</code>: boolean (= <code>false</code>)"))
+        assertTrue(
+            "type de <button> con su tipo y el valor por defecto de MUI",
+            doc.contains("<code>type</code>: &quot;submit&quot; | &quot;reset&quot; | &quot;button&quot; (= <code>&#39;button&#39;</code>)"),
+        )
+        assertTrue(doc, doc.contains("<code>onClick</code>: (event) =&gt; void"))
         assertFalse("No existe la prop text", doc.contains("<code>text</code>"))
     }
 
@@ -210,6 +215,8 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
     fun testMuiTypographyHtmlRoot() {
         val doc = muiPage("Typogra<caret>phy").orEmpty()
         assertTrue(doc, doc.contains("Atributos HTML de &lt;span&gt;:"))
+        assertTrue(doc, doc.contains("<code>className</code>: string"))
+        assertFalse("Solo en componentes ButtonBase se indica type=button", doc.contains("&#39;button&#39;"))
     }
 
     // ---------- #4 Box ----------
@@ -226,7 +233,8 @@ class ReactPropsDocumentationTest : BasePlatformTestCase() {
     fun testMuiCardInheritsPaper() {
         val doc = muiPage("Ca<caret>rd").orEmpty()
         assertTrue(doc, doc.contains("Heredadas de Paper:"))
-        assertTrue(doc, doc.contains("<code>elevation</code>"))
+        assertTrue(doc, doc.contains("<code>elevation</code>: number (= <code>1</code>)"))
+        assertTrue(doc, doc.contains("<code>square</code>: boolean (= <code>false</code>)"))
     }
 
     fun testMuiDialogInheritsModal() {
