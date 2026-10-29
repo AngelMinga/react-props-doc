@@ -12,10 +12,13 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.lang.javascript.psi.JSArgumentList
+import com.intellij.lang.javascript.psi.JSExpression
+import com.intellij.lang.javascript.psi.JSFunctionExpression
 import com.intellij.lang.javascript.psi.JSLiteralExpression
 import com.intellij.lang.javascript.psi.JSObjectLiteralExpression
 import com.intellij.lang.javascript.psi.JSProperty
 import com.intellij.lang.javascript.psi.JSReferenceExpression
+import com.intellij.lang.javascript.psi.JSVariable
 import com.intellij.model.Pointer
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
@@ -130,10 +133,51 @@ object SxData {
             DocumentationMarkup.SECTIONS_START + rows + DocumentationMarkup.SECTIONS_END
     }
 
-    fun attributeDoc(kind: StyleKind): String {
+    /** Tipo de una clave como unión: `'absolute' | 'fixed' | …` más lo genérico (`string`, `number`). */
+    fun typeText(entry: SxEntry, max: Int = 6): String {
+        val literals = entry.literals
+        val quoted = literals.take(max).map { "'$it'" } + if (literals.size > max) listOf("…") else emptyList()
+        val generic = entry.values.filter { it !in literals }.distinct()
+        // `número (px) o string | string` → sin el `string` repetido
+        val cleaned = generic.filter { g -> generic.none { it != g && g in it.split(' ') } }
+        return (quoted + cleaned).joinToString(" | ").ifEmpty { "valor" }
+    }
+
+    /** El objeto de estilos del atributo: `sx={{…}}`, `sx={estilos}` (variable) o `sx={(theme) => ({…})}`. */
+    fun styleObject(attribute: XmlAttribute): JSObjectLiteralExpression? {
+        val expression = PsiTreeUtil.findChildOfType(attribute.valueElement, JSExpression::class.java) ?: return null
+        return when (expression) {
+            is JSObjectLiteralExpression -> expression
+            is JSReferenceExpression -> ((expression.resolve() as? JSVariable)?.initializer as? JSObjectLiteralExpression)
+            is JSFunctionExpression -> PsiTreeUtil.findChildOfType(expression, JSObjectLiteralExpression::class.java)
+            else -> null
+        }
+    }
+
+    /** Una fila por clave escrita: su tipo y el valor que tiene. */
+    private fun usedKeys(obj: JSObjectLiteralExpression, kind: StyleKind): String =
+        obj.properties.mapNotNull { property ->
+            val name = property.name ?: return@mapNotNull null
+            val value = property.value
+            val current = value?.text?.let { StringUtil.shortenTextWithEllipsis(it.replace(Regex("\\s+"), " "), 30, 0) }
+            val entry = entries[name]
+            val type = when {
+                isIgnoredKey(name) || entry == null && value is JSObjectLiteralExpression -> "estilos anidados (selector)"
+                entry == null -> "⚠ clave desconocida"
+                kind == StyleKind.STYLE && entry.isMuiOnly -> "⚠ atajo de MUI: no funciona en style"
+                value is JSObjectLiteralExpression -> "responsive { xs, sm, md… } de " + esc(typeText(entry))
+                else -> esc(typeText(entry))
+            }
+            "<code>${esc(name)}</code>: $type" + (current?.takeIf { value !is JSObjectLiteralExpression }?.let { " &nbsp;= <code>${esc(it)}</code>" } ?: "")
+        }.joinToString("<br/>")
+
+    fun attributeDoc(kind: StyleKind, attribute: XmlAttribute? = null): String {
         val all = entries.values
         val shortcuts = all.filter { it.isMuiOnly }.map { it.name }.sorted()
         val rows = buildString {
+            append(section("Tipo:", if (kind == StyleKind.SX) "<code>SxProps&lt;Theme&gt;</code> (@mui/system)" else "<code>React.CSSProperties</code>"))
+            val used = attribute?.let { styleObject(it) }?.takeIf { it.properties.isNotEmpty() }
+            if (used != null) append(section("En este ${if (kind == StyleKind.SX) "sx" else "style"}:", usedKeys(used, kind)))
             if (kind == StyleKind.SX) {
                 append(section("Acepta:", "${all.size} claves: propiedades CSS en camelCase (<code>position</code>, <code>cursor</code>…) y atajos de MUI."))
                 append(section("Atajos de MUI:", shortcuts.take(30).joinToString(", ") { "<code>${esc(it)}</code>" } + " … (espaciado: 1 = 8px)"))
@@ -241,7 +285,7 @@ class SxDocTarget(private val element: PsiElement, private val entry: SxEntry?, 
     override fun computePresentation() = TargetPresentation.builder(entry?.name ?: kind.name.lowercase()).presentation()
 
     override fun computeDocumentation() =
-        DocumentationResult.documentation(if (entry != null) SxData.entryDoc(entry, kind) else SxData.attributeDoc(kind))
+        DocumentationResult.documentation(if (entry != null) SxData.entryDoc(entry, kind) else SxData.attributeDoc(kind, element as? XmlAttribute))
 }
 
 /** Claves de `sx`/`style` desconocidas (`positon`) y atajos de MUI usados en `style` (no funcionan ahí). */

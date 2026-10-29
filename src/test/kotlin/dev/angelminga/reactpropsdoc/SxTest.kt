@@ -77,6 +77,28 @@ class SxTest : BasePlatformTestCase() {
         assertTrue(doc, doc.contains("Responsive:"))
     }
 
+    fun testHoverOnAttributeShowsTypesOfUsedKeys() {
+        page("<Box s<caret>x={{ position: 'relative', marginTop: '5px', '&:hover': { color: 'red' }, bgColor: 'red' }} />")
+        val doc = docAtCaret()
+        assertTrue(doc, doc.contains("SxProps&lt;Theme&gt;"))
+        assertTrue(doc, doc.contains("<code>position</code>: &#39;absolute&#39; | &#39;fixed&#39; | &#39;relative&#39;"))
+        assertTrue(doc, doc.contains("= <code>&#39;relative&#39;</code>"))
+        assertTrue(doc, doc.contains("<code>marginTop</code>: &#39;auto&#39; | número (px) o string &nbsp;"))
+        assertTrue(doc, doc.contains("estilos anidados"))
+        assertTrue(doc, doc.contains("<code>bgColor</code>: ⚠ clave desconocida"))
+    }
+
+    fun testHoverOnStyleShowsTypesAndVariable() {
+        myFixture.configureByText(
+            "S.jsx",
+            "const estilos = { marginTop: '5px', mt: 2 }\nexport const S = () => <div st<caret>yle={estilos} />",
+        )
+        val doc = docAtCaret()
+        assertTrue(doc, doc.contains("React.CSSProperties"))
+        assertTrue(doc, doc.contains("<code>marginTop</code>:"))
+        assertTrue(doc, doc.contains("no funciona en style"))
+    }
+
     fun testUnknownKeysAndFixes() {
         myFixture.enableInspections(SxUnknownKeyInspection())
         page(

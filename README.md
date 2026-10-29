@@ -5,7 +5,7 @@ ayuda con las traducciones de páginas (`getLanguagePage('página')`). Nació pa
 (React + Module Federation + MUI), pero funciona en cualquier proyecto React con `propTypes` o MUI.
 
 - **IDE:** IntelliJ IDEA Ultimate 2026.3 o superior (requiere los plugins JavaScript y JSON incluidos).
-- **Versión actual:** 1.10.0
+- **Versión actual:** 1.11.0
 
 ## Instalación
 
@@ -50,6 +50,9 @@ Ajustes: *Settings → Tools → React Props Doc*. Avisos: *Settings → Editor 
 - **Hover sobre una clave** (`position`, `cursor`, `p`, `bgcolor`…): valores permitidos, nota de MUI
   (p. ej. *atajo de padding; usa theme.spacing (1 = 8px)*) y un ejemplo.
 - **Hover sobre `sx`**: qué acepta (CSS, atajos, valores del tema, responsive `{ xs, md }`, selectores `'&:hover'`).
+- **Hover sobre `sx` o `style` con sus tipos**: `SxProps<Theme>` / `React.CSSProperties` y, por cada clave escrita, su tipo y su valor
+  (`position: 'absolute' | 'fixed' | 'relative' | … = 'relative'`). Marca claves desconocidas y atajos de MUI en `style`.
+  También lee `sx={estilos}` (variable) y `sx={(theme) => ({…})}`.
 - Datos generados desde `csstype` y `@mui/system` con `tools/generate_sx_data.py` → `sx-properties.tsv`.
 
 ### Avisos (inspecciones) y correcciones rápidas (Alt+Enter)
@@ -131,6 +134,7 @@ python3 tools/generate_sx_data.py <csstype/index.d.ts> <@mui/system/styleFunctio
 ## Historial
 | Versión | Cambios |
 |---|---|
+| 1.11.0 | Hover de `sx`/`style`: tipo del atributo y tipo + valor de cada clave escrita. |
 | 1.10.0 | `sx`/`style`: autocompletado de claves y valores, hover con valores y atajos de MUI, aviso de claves desconocidas. |
 | 1.9.0 | Redux: forma real deducida de los usos, variables y selectores aparte; MUI System revisado; extraer texto en componentes sin traducciones; autocompletado sin lista genérica. |
 | 1.8.1 | Traducciones: Ctrl+clic y hover en accesos (`buttons.cancel`) y desestructuraciones anidadas o de segundo nivel. |
